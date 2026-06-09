@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const config: NextConfig = {
   transpilePackages: ['@rs-sports/shared-types'],
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
       {

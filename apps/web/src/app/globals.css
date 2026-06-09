@@ -1,15 +1,41 @@
 :root {
+  /* Brand */
   --primary: #2a9d8f;
-  --primary-dark: #1a7a6e;
+  --primary-dark: #21867a;
+  --primary-glow: rgba(42, 157, 143, 0.14);
+
+  /* Sports */
   --running: #e63946;
   --cycling: #f4a261;
   --trekking: #457b9d;
-  --bg: #f1f5f9;
+
+  /* Neutrals */
+  --bg: #f0f4f8;
   --surface: #ffffff;
   --border: #e2e8f0;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --radius: 12px;
+  --border-subtle: #f8fafc;
+
+  /* Text */
+  --text: #0f172a;
+  --text-2: #334155;
+  --text-3: #64748b;
+  --text-4: #94a3b8;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow: 0 4px 6px rgba(15, 23, 42, 0.05), 0 10px 20px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  /* Radius */
+  --r-sm: 6px;
+  --r: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Nav height */
+  --nav-h: 62px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -23,15 +49,56 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; border: none; background: none; }
+img, svg { max-width: 100%; display: block; }
 input, button, textarea, select { font: inherit; }
 
+/* ── Layout helpers ─────────────────────────────────────────────── */
+
+/* Old feed grid (kept for backward compat) */
 .feed-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1.25rem;
   align-items: start;
 }
-
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .feed-layout { grid-template-columns: 1fr; }
+}
+
+/* Social pages: left-nav | content | right-widgets */
+.social-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 280px;
+  gap: 1.25rem;
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + 1.5rem) 1.25rem 4rem;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .social-layout { grid-template-columns: 200px minmax(0, 1fr); }
+  .hide-xl { display: none !important; }
+}
+@media (max-width: 740px) {
+  .social-layout { grid-template-columns: 1fr; padding-top: calc(var(--nav-h) + 1rem); }
+  .hide-md { display: none !important; }
+}
+
+/* Wide pages (events, groups, rankings) */
+.wide-layout {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + 1.5rem) 1.25rem 4rem;
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes rs-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .38 } }
+@keyframes rs-fade-up {
+  from { opacity: 0; transform: translateY(10px) }
+  to   { opacity: 1; transform: none }
+}
+@keyframes rs-spin {
+  to { transform: rotate(360deg) }
 }

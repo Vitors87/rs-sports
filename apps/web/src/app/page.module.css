@@ -1,80 +1,276 @@
+/* ── Hero ───────────────────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(140deg, #0a1628 0%, #0d2b1e 50%, #1a4a3a 100%);
+  min-height: 100svh;
+  background: linear-gradient(155deg, #060e1a 0%, #0b2215 45%, #14372b 100%);
   position: relative;
   overflow: hidden;
-  padding: 4rem 1.5rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--nav-h) + 3rem) 1.5rem 0;
   text-align: center;
 }
 
-.hero::before {
-  content: '';
+.heroGlow {
   position: absolute;
-  top: -80px;
+  top: 15%;
   left: 50%;
   transform: translateX(-50%);
-  width: 700px;
+  width: min(700px, 90vw);
   height: 500px;
-  background: radial-gradient(ellipse, rgba(42, 157, 143, 0.22) 0%, transparent 65%);
+  background: radial-gradient(ellipse at center, rgba(42,157,143,0.22) 0%, transparent 65%);
   pointer-events: none;
 }
 
 .heroEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1.1rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(42,157,143,0.4);
+  background: rgba(42,157,143,0.1);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--primary);
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .heroTitle {
-  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-size: clamp(3rem, 8vw, 6rem);
   font-weight: 900;
-  letter-spacing: -0.04em;
-  color: #ffffff;
-  line-height: 1.05;
-  margin-bottom: 1rem;
+  letter-spacing: -0.05em;
+  color: #fff;
+  line-height: 0.95;
+  margin-bottom: 1.25rem;
 }
 
 .heroTitle span {
-  color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #5ecbbf 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .heroSub {
-  font-size: 1.05rem;
-  color: rgba(255, 255, 255, 0.6);
-  max-width: 460px;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: rgba(255,255,255,0.58);
+  max-width: 480px;
   margin: 0 auto 2.5rem;
-  line-height: 1.6;
+  line-height: 1.65;
 }
+
+.heroCtas {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+
+.ctaPrimary {
+  padding: 0.8rem 2rem;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 4px 24px rgba(42,157,143,0.45);
+}
+.ctaPrimary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+.ctaSecondary {
+  padding: 0.8rem 2rem;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: rgba(255,255,255,0.82);
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1.5px solid rgba(255,255,255,0.22);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ctaSecondary:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
 
 .heroTags {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
+  margin-bottom: 4rem;
 }
 
 .heroTag {
-  padding: 0.35rem 1rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--r-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.content {
+/* Mountain silhouette at hero bottom */
+.heroMountain {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* ── Sections ───────────────────────────────────────────────────── */
+.section {
+  padding: 5rem 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 5rem;
 }
 
 .sectionLabel {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  letter-spacing: 0.14em;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+}
+
+.sectionTitle {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.1;
   margin-bottom: 0.75rem;
+}
+
+.sectionSub {
+  font-size: 1rem;
+  color: var(--text-3);
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+/* ── Sport cards ────────────────────────────────────────────────── */
+.sportsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+}
+@media (max-width: 700px) {
+  .sportsGrid { grid-template-columns: 1fr; }
+}
+
+.sportCard {
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.sportCard:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+.sportCardBanner {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-size: 3rem;
+}
+
+.sportCardBody {
+  padding: 1.25rem;
+}
+
+/* ── Steps ──────────────────────────────────────────────────────── */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+@media (max-width: 800px) {
+  .stepsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .stepsGrid { grid-template-columns: 1fr; }
+}
+
+.stepCard {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.stepNumber {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-glow);
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+/* ── Metrics band ───────────────────────────────────────────────── */
+.metricsBand {
+  background: linear-gradient(135deg, #0a1628, #0d2b1e);
+  padding: 4rem 1.5rem;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.08);
+  max-width: 900px;
+  margin: 0 auto;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .metricsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.metricItem {
+  background: rgba(255,255,255,0.03);
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+/* ── Events strip ───────────────────────────────────────────────── */
+.eventsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.1rem;
+  margin-top: 2.5rem;
+}
+@media (max-width: 800px) {
+  .eventsGrid { grid-template-columns: 1fr; }
+}
+
+/* ── CTA section ────────────────────────────────────────────────── */
+.ctaSection {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  padding: 5rem 1.5rem;
+  text-align: center;
 }
