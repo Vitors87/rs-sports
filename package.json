@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "prisma generate --schema=./database/prisma/schema.prisma",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
