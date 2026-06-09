@@ -32,6 +32,7 @@ model User {
   username  String   @unique
   bio       String?
   avatarUrl String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -42,8 +43,23 @@ model User {
   rankings            Ranking[]
   groupMemberships    GroupMember[]
   eventParticipations EventParticipant[]
+  followers           UserFollow[]       @relation("UserFollowing")
+  following           UserFollow[]       @relation("UserFollowers")
 
   @@map("users")
+}
+
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
 }
 
 model Sport {
