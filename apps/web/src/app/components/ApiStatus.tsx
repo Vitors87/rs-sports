@@ -9,7 +9,9 @@ interface HealthData {
 
 type CheckState = 'idle' | 'loading' | 'ok' | 'error';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+// Empty string = relative URL (same origin). Works in production without config.
+// Set NEXT_PUBLIC_API_URL to point to a separate API service when needed.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export function ApiStatus() {
   const [state, setState] = useState<CheckState>('idle');
@@ -103,8 +105,9 @@ export function ApiStatus() {
             <strong>Error:</strong> {error}
           </div>
           <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.8 }}>
-            Asegurate de que la API esté corriendo:{' '}
-            <code>npm run dev -w apps/api</code>
+            {API_URL
+              ? <>Verificar que el servicio API esté corriendo en <code>{API_URL}</code></>
+              : <>En local: <code>npm run dev -w apps/api</code></>}
           </div>
         </div>
       )}
