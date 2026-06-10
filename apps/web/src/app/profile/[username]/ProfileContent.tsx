@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
+import { Avatar } from '@/components/Avatar';
+import { useCurrentUser } from '@/contexts/UserContext';
 import { ActivityCard, type ActivityCardData } from '@/components/ActivityCard';
 
 const SPORT_COLOR: Record<string, string> = {
@@ -30,32 +33,9 @@ interface UserData {
   };
 }
 
-function Avatar({ name, size = 80 }: { name: string; size?: number }) {
-  const initials = name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: `${Math.round(size * 0.33)}px`,
-        fontWeight: 900,
-        flexShrink: 0,
-        letterSpacing: '0.02em',
-        boxShadow: '0 4px 20px rgba(42,157,143,0.4)',
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
-
 export function ProfileContent({ username }: { username: string }) {
+  const { refreshUser } = useCurrentUser();
+
   const [user, setUser] = useState<UserData | null>(null);
   const [activities, setActivities] = useState<ActivityCardData[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -65,6 +45,19 @@ export function ProfileContent({ username }: { username: string }) {
   const [followLoading, setFollowLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Avatar upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarHover, setAvatarHover] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
+  // Edit modal
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     apiFetch<{
@@ -97,15 +90,68 @@ export function ProfileContent({ username }: { username: string }) {
     setIsFollowing(!was);
     setFollowerCount((c) => c + (was ? -1 : 1));
     try {
-      const res = await apiFetch<{ following: boolean }>(`/api/users/${username}/follow`, {
-        method: 'POST',
-      });
+      const res = await apiFetch<{ following: boolean }>(`/api/users/${username}/follow`, { method: 'POST' });
       setIsFollowing(res.following);
     } catch {
       setIsFollowing(was);
       setFollowerCount((c) => c + (was ? 1 : -1));
     }
     setFollowLoading(false);
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError('');
+    setAvatarUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploadRes = await fetch('/api/upload/avatar', { method: 'POST', body: form });
+      const uploadJson = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadJson.error ?? 'Error al subir imagen');
+      const { url } = uploadJson as { url: string };
+
+      await apiFetch(`/api/profile/${username}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ avatarUrl: url }),
+      });
+      setUser((prev) => prev ? { ...prev, avatarUrl: url } : prev);
+      refreshUser();
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Error al actualizar la foto');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  function openEdit() {
+    if (!user) return;
+    setEditName(user.name);
+    setEditBio(user.bio ?? '');
+    setSaveError('');
+    setShowEdit(true);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editName.trim()) { setSaveError('El nombre es requerido'); return; }
+    setSaving(true);
+    setSaveError('');
+    try {
+      const res = await apiFetch<{ user: { name: string; bio?: string | null } }>(`/api/profile/${username}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editName.trim(), bio: editBio.trim() }),
+      });
+      setUser((prev) => prev ? { ...prev, name: res.user.name, bio: res.user.bio } : prev);
+      refreshUser();
+      setShowEdit(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar los cambios');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -138,68 +184,113 @@ export function ProfileContent({ username }: { username: string }) {
   return (
     <>
       {/* Profile header */}
-      <div
-        style={{
-          background: 'var(--surface)',
-          borderRadius: 'var(--r-lg)',
-          border: '1px solid var(--border)',
-          overflow: 'hidden',
-          marginBottom: '1.5rem',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
+      <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
         {/* Cover */}
-        <div
-          style={{
-            height: 120,
-            background: 'linear-gradient(135deg, #0a1628 0%, #0d2b1e 50%, #1a4a3a 100%)',
-            position: 'relative',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'radial-gradient(ellipse at 30% 50%, rgba(42,157,143,0.25) 0%, transparent 70%)',
-            }}
-          />
+        <div style={{ height: 120, background: 'linear-gradient(135deg, #0a1628 0%, #0d2b1e 50%, #1a4a3a 100%)', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(42,157,143,0.25) 0%, transparent 70%)' }} />
         </div>
 
         {/* Info section */}
         <div style={{ padding: '0 1.5rem 1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', marginTop: -40, marginBottom: '1rem' }}>
-            <div style={{ border: '4px solid var(--surface)', borderRadius: '50%', flexShrink: 0 }}>
-              <Avatar name={user.name} size={80} />
+            {/* Clickable avatar */}
+            <div style={{ flexShrink: 0, position: 'relative' }}>
+              <div
+                style={{
+                  border: '4px solid var(--surface)',
+                  borderRadius: '50%',
+                  cursor: isSelf ? 'pointer' : 'default',
+                  position: 'relative',
+                  display: 'inline-block',
+                  opacity: avatarUploading ? 0.6 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={() => setAvatarHover(true)}
+                onMouseLeave={() => setAvatarHover(false)}
+                onClick={() => isSelf && !avatarUploading && fileInputRef.current?.click()}
+                title={isSelf ? 'Cambiar foto de perfil' : undefined}
+              >
+                <Avatar name={user.name} avatarUrl={user.avatarUrl} size={80} shadow />
+                {isSelf && (avatarHover || avatarUploading) && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.52)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <span style={{ color: '#fff', fontSize: '0.62rem', fontWeight: 700, textAlign: 'center', lineHeight: 1.3 }}>
+                      {avatarUploading ? 'Subiendo…' : 'Cambiar\nfoto'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleAvatarChange}
+              />
             </div>
+
             <div style={{ flex: 1, paddingBottom: '0.25rem' }}>
               <h1 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 {user.name}
               </h1>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-4)' }}>@{user.username}</p>
             </div>
-            {!isSelf && (
-              <button
-                onClick={handleFollow}
-                disabled={followLoading}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: 'var(--r-pill)',
-                  background: isFollowing ? 'transparent' : 'var(--primary)',
-                  color: isFollowing ? 'var(--primary)' : '#fff',
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  border: '2px solid var(--primary)',
-                  cursor: followLoading ? 'wait' : 'pointer',
-                  flexShrink: 0,
-                  alignSelf: 'center',
-                  transition: 'all 0.15s',
-                  opacity: followLoading ? 0.7 : 1,
-                }}
-              >
-                {followLoading ? '...' : isFollowing ? '✓ Siguiendo' : 'Seguir'}
-              </button>
-            )}
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', alignSelf: 'center' }}>
+              {isSelf && (
+                <button
+                  onClick={openEdit}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: 'var(--r-pill)',
+                    background: 'var(--bg)',
+                    color: 'var(--text-2)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    border: '1.5px solid var(--border)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    flexShrink: 0,
+                  }}
+                >
+                  Editar perfil
+                </button>
+              )}
+              {!isSelf && (
+                <button
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: 'var(--r-pill)',
+                    background: isFollowing ? 'transparent' : 'var(--primary)',
+                    color: isFollowing ? 'var(--primary)' : '#fff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    border: '2px solid var(--primary)',
+                    cursor: followLoading ? 'wait' : 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.15s',
+                    opacity: followLoading ? 0.7 : 1,
+                  }}
+                >
+                  {followLoading ? '...' : isFollowing ? '✓ Siguiendo' : 'Seguir'}
+                </button>
+              )}
+            </div>
           </div>
+
+          {avatarError && (
+            <p style={{ fontSize: '0.78rem', color: '#dc2626', marginBottom: '0.5rem' }}>{avatarError}</p>
+          )}
 
           {user.bio && (
             <p style={{ fontSize: '0.9rem', color: 'var(--text-2)', marginBottom: '1.1rem', lineHeight: 1.55 }}>
@@ -250,39 +341,30 @@ export function ProfileContent({ username }: { username: string }) {
 
         {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Disciplines */}
           {Object.keys(sportCounts).length > 0 && (
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '1.1rem' }}>
-              <h3 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.85rem' }}>
-                Disciplinas
-              </h3>
+              <h3 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.85rem' }}>Disciplinas</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {Object.entries(sportCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([type, count]) => {
-                    const color = SPORT_COLOR[type] ?? 'var(--primary)';
-                    const total = activities.length;
-                    return (
-                      <div key={type}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-2)' }}>{type.charAt(0) + type.slice(1).toLowerCase()}</span>
-                          <span style={{ fontSize: '0.78rem', color, fontWeight: 700 }}>{count} act.</span>
-                        </div>
-                        <div style={{ height: 4, background: 'var(--bg)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${(count / total) * 100}%`, background: color, borderRadius: 'var(--r-pill)' }} />
-                        </div>
+                {Object.entries(sportCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
+                  const color = SPORT_COLOR[type] ?? 'var(--primary)';
+                  return (
+                    <div key={type}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-2)' }}>{type.charAt(0) + type.slice(1).toLowerCase()}</span>
+                        <span style={{ fontSize: '0.78rem', color, fontWeight: 700 }}>{count} act.</span>
                       </div>
-                    );
-                  })}
+                      <div style={{ height: 4, background: 'var(--bg)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(count / activities.length) * 100}%`, background: color, borderRadius: 'var(--r-pill)' }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Achievements */}
           <div style={{ background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '1.1rem' }}>
-            <h3 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.85rem' }}>
-              Logros
-            </h3>
+            <h3 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.85rem' }}>Logros</h3>
             {achievements.length === 0 ? (
               <p style={{ fontSize: '0.82rem', color: 'var(--text-4)', textAlign: 'center', padding: '0.5rem 0' }}>
                 Aún no hay logros desbloqueados.
@@ -291,19 +373,7 @@ export function ProfileContent({ username }: { username: string }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {achievements.map(({ icon, title, description }) => (
                   <div key={title} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 'var(--r-sm)',
-                        background: 'var(--primary-glow)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1rem',
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span style={{ width: 36, height: 36, borderRadius: 'var(--r-sm)', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
                       {icon}
                     </span>
                     <div>
@@ -318,11 +388,127 @@ export function ProfileContent({ username }: { username: string }) {
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 700px) {
-          .profile-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
+      {/* Edit modal */}
+      {showEdit && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 500,
+            background: 'rgba(10,22,40,0.55)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowEdit(false); }}
+        >
+          <div
+            style={{
+              background: 'var(--surface)',
+              borderRadius: 'var(--r-lg)',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 440,
+              boxShadow: 'var(--shadow-md)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1.5rem' }}>
+              Editar perfil
+            </h2>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: '0.35rem' }}>
+                  Nombre *
+                </label>
+                <input
+                  value={editName}
+                  onChange={(e) => { setEditName(e.target.value); setSaveError(''); }}
+                  maxLength={80}
+                  placeholder="Tu nombre"
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: 'var(--r)',
+                    border: '1.5px solid var(--border)',
+                    background: 'var(--bg)',
+                    fontSize: '0.9rem',
+                    color: 'var(--text)',
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-4)', marginTop: '0.25rem', textAlign: 'right' }}>
+                  {editName.length}/80
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: '0.35rem' }}>
+                  Bio
+                </label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  maxLength={300}
+                  rows={3}
+                  placeholder="Cuéntanos algo sobre ti…"
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: 'var(--r)',
+                    border: '1.5px solid var(--border)',
+                    background: 'var(--bg)',
+                    fontSize: '0.9rem',
+                    color: 'var(--text)',
+                    resize: 'vertical',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    lineHeight: 1.5,
+                  }}
+                />
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-4)', marginTop: '0.25rem', textAlign: 'right' }}>
+                  {editBio.length}/300
+                </div>
+              </div>
+
+              {saveError && (
+                <p style={{ fontSize: '0.8rem', color: '#dc2626' }}>{saveError}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEdit(false)}
+                  style={{ padding: '0.55rem 1.2rem', borderRadius: 'var(--r-pill)', background: 'var(--bg)', border: '1.5px solid var(--border)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !editName.trim()}
+                  style={{
+                    padding: '0.55rem 1.5rem',
+                    borderRadius: 'var(--r-pill)',
+                    background: saving || !editName.trim() ? 'var(--border)' : 'var(--primary)',
+                    color: saving || !editName.trim() ? 'var(--text-4)' : '#fff',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: saving || !editName.trim() ? 'default' : 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

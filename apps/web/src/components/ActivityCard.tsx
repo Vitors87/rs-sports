@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
+import { Avatar } from './Avatar';
+import { useCurrentUser } from '@/contexts/UserContext';
 import { apiFetch } from '@/lib/api';
 
 const SPORT_GRAD: Record<string, string> = {
@@ -24,7 +26,7 @@ export interface ActivityCardData {
   duration?: number | null;
   elevation?: number | null;
   date: string;
-  user: { name: string; username: string };
+  user: { name: string; username: string; avatarUrl?: string | null };
   sport: { name: string; type: string };
   commentCount?: number;
   likeCount?: number;
@@ -50,33 +52,11 @@ function timeAgo(dateStr: string): string {
   return 'ahora';
 }
 
-function Avatar({ name, size = 38 }: { name: string; size?: number }) {
-  const initials = name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: `${Math.round(size * 0.32)}px`,
-        fontWeight: 800,
-        flexShrink: 0,
-        letterSpacing: '0.02em',
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
 
 export function ActivityCard({ activity }: { activity: ActivityCardData }) {
   const grad = SPORT_GRAD[activity.sport.type] ?? 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
   const emoji = SPORT_EMOJI[activity.sport.type] ?? '🏅';
+  const { user: currentUser } = useCurrentUser();
 
   const [liked, setLiked] = useState(activity.isLiked ?? false);
   const [likeCount, setLikeCount] = useState(activity.likeCount ?? 0);
@@ -196,7 +176,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
         {/* User header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.7rem' }}>
           <Link href={`/profile/${activity.user.username}`} style={{ flexShrink: 0 }}>
-            <Avatar name={activity.user.name} />
+            <Avatar name={activity.user.name} avatarUrl={activity.user.avatarUrl} />
           </Link>
           <div style={{ flex: 1, minWidth: 0 }}>
             <Link
@@ -319,7 +299,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
 
           {/* Input */}
           <form onSubmit={handleSubmitComment} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Avatar name="Demo Runner" size={28} />
+            <Avatar name={currentUser?.name ?? 'Demo Runner'} avatarUrl={currentUser?.avatarUrl} size={28} />
             <input
               ref={inputRef}
               value={commentText}

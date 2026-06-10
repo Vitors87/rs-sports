@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Avatar } from './Avatar';
+import { useCurrentUser } from '@/contexts/UserContext';
 
 const LINKS = [
   { href: '/feed',                 icon: '🏠', label: 'Inicio' },
@@ -13,6 +15,7 @@ const LINKS = [
 
 export function LeftSidebar() {
   const path = usePathname();
+  const { user } = useCurrentUser();
 
   return (
     <aside
@@ -63,25 +66,9 @@ export function LeftSidebar() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              color: '#fff',
-              flexShrink: 0,
-            }}
-          >
-            DR
-          </div>
+          <Avatar name={user?.name ?? 'Demo Runner'} avatarUrl={user?.avatarUrl} size={36} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--text)' }}>Demo Runner</div>
+            <div style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--text)' }}>{user?.name ?? 'Demo Runner'}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-4)' }}>@demo_runner</div>
           </div>
         </div>

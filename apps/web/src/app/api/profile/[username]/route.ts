@@ -40,6 +40,62 @@ function computeAchievements(
   return result;
 }
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ username: string }> },
+) {
+  try {
+    const { username } = await params;
+    const body = await req.json().catch(() => ({}));
+
+    const { name, bio, avatarUrl } = body as Record<string, unknown>;
+
+    // TODO: when auth is added, verify req.user.username === username
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+      }
+      if (name.trim().length > 80) {
+        return NextResponse.json({ error: 'El nombre no puede superar 80 caracteres' }, { status: 400 });
+      }
+    }
+    if (bio !== undefined && typeof bio !== 'string') {
+      return NextResponse.json({ error: 'Bio inválida' }, { status: 400 });
+    }
+    if (bio !== undefined && (bio as string).length > 300) {
+      return NextResponse.json({ error: 'La bio no puede superar 300 caracteres' }, { status: 400 });
+    }
+    if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== 'string') {
+      return NextResponse.json({ error: 'avatarUrl inválida' }, { status: 400 });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { username } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    const data: { name?: string; bio?: string | null; avatarUrl?: string | null } = {};
+    if (name !== undefined) data.name = (name as string).trim();
+    if (bio !== undefined) data.bio = (bio as string).trim() || null;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl as string | null;
+
+    const updated = await prisma.user.update({ where: { username }, data });
+
+    return NextResponse.json({
+      user: {
+        id: updated.id,
+        name: updated.name,
+        username: updated.username,
+        bio: updated.bio,
+        avatarUrl: updated.avatarUrl,
+      },
+    });
+  } catch (error) {
+    console.error('[PATCH /api/profile/[username]]', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ username: string }> },

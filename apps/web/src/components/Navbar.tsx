@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { Avatar } from './Avatar';
+import { useCurrentUser } from '@/contexts/UserContext';
 
 const NAV = [
   { href: '/feed', label: 'Feed' },
@@ -15,6 +17,7 @@ export function Navbar() {
   const path = usePathname();
   const isHome = path === '/';
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useCurrentUser();
 
   const bg = isHome ? 'rgba(10,22,40,0.88)' : 'rgba(255,255,255,0.96)';
   const border = isHome ? 'rgba(255,255,255,0.08)' : 'var(--border)';
@@ -103,23 +106,7 @@ export function Navbar() {
             transition: 'all 0.14s',
           }}
         >
-          <span
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.6rem',
-              fontWeight: 800,
-              color: '#fff',
-              flexShrink: 0,
-            }}
-          >
-            DR
-          </span>
+          <Avatar name={user?.name ?? 'Demo Runner'} avatarUrl={user?.avatarUrl} size={26} />
           Mi perfil
         </Link>
 
