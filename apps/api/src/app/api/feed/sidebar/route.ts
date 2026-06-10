@@ -37,7 +37,6 @@ export async function GET() {
       }),
     ]);
 
-    // ── Upcoming events ──────────────────────────────────────────
     const myParticipations = await prisma.eventParticipant.findMany({
       where: { userId: currentUser.id, eventId: { in: rawEvents.map((e) => e.id) } },
       select: { eventId: true },
@@ -56,7 +55,6 @@ export async function GET() {
       sport: e.sport,
     }));
 
-    // ── Top runners ──────────────────────────────────────────────
     const map = new Map<string, { name: string; username: string; km: number; count: number }>();
     for (const a of activities) {
       const key = a.user.username;
@@ -75,7 +73,6 @@ export async function GET() {
         activities: u.count,
       }));
 
-    // ── Active groups ────────────────────────────────────────────
     const myMemberships = await prisma.groupMember.findMany({
       where: { userId: currentUser.id, groupId: { in: rawGroups.map((g) => g.id) } },
       select: { groupId: true },

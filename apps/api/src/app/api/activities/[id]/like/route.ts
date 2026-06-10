@@ -18,7 +18,6 @@ export async function POST(
       return NextResponse.json({ error: 'Actividad no encontrada' }, { status: 404 });
     }
 
-    // Likes live on a Post tied to the activity (same intermediary as comments)
     let post = await prisma.post.findFirst({ where: { activityId } });
     if (!post) {
       post = await prisma.post.create({

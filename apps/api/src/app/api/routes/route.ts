@@ -14,9 +14,7 @@ export async function GET(req: Request) {
         ...(difficulty ? { difficulty } : {}),
         ...(region ? { region: { contains: region, mode: 'insensitive' } } : {}),
       },
-      include: {
-        sport: { select: { id: true, name: true, type: true } },
-      },
+      include: { sport: { select: { id: true, name: true, type: true } } },
       orderBy: { createdAt: 'asc' },
     });
 

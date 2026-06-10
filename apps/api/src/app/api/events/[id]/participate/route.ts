@@ -21,9 +21,7 @@ export async function POST(
       return NextResponse.json({ participating: false });
     }
 
-    await prisma.eventParticipant.create({
-      data: { userId: user.id, eventId },
-    });
+    await prisma.eventParticipant.create({ data: { userId: user.id, eventId } });
     return NextResponse.json({ participating: true });
   } catch (error) {
     console.error('[POST /api/events/[id]/participate]', error);

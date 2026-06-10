@@ -21,9 +21,7 @@ export async function POST(
       return NextResponse.json({ member: false });
     }
 
-    await prisma.groupMember.create({
-      data: { userId: user.id, groupId },
-    });
+    await prisma.groupMember.create({ data: { userId: user.id, groupId } });
     return NextResponse.json({ member: true });
   } catch (error) {
     console.error('[POST /api/groups/[id]/join]', error);

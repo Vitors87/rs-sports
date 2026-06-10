@@ -10,11 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
     "@rs-sports/config": "*",
     "@rs-sports/shared-types": "*",
     "@rs-sports/validation": "*",
-    "@vercel/blob": "^2.4.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

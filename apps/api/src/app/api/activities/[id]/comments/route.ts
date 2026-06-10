@@ -14,7 +14,6 @@ export async function GET(
       return NextResponse.json({ error: 'Actividad no encontrada' }, { status: 404 });
     }
 
-    // Option A: comments live on the Post associated with the activity
     const post = await prisma.post.findFirst({
       where: { activityId },
       include: {
@@ -64,7 +63,6 @@ export async function POST(
       return NextResponse.json({ error: 'Actividad no encontrada' }, { status: 404 });
     }
 
-    // Option A: find or create a Post tied to the activity, then add Comment
     let post = await prisma.post.findFirst({ where: { activityId } });
     if (!post) {
       post = await prisma.post.create({

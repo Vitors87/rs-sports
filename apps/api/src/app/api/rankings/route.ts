@@ -14,14 +14,17 @@ export async function GET() {
       },
     });
 
-    const rankings: Record<string, Array<{
-      position: number;
-      name: string;
-      username: string;
-      score: number;
-      unit: string;
-      activities: number;
-    }>> = {};
+    const rankings: Record<
+      string,
+      Array<{
+        position: number;
+        name: string;
+        username: string;
+        score: number;
+        unit: string;
+        activities: number;
+      }>
+    > = {};
 
     for (const sportType of SPORT_TYPES) {
       const map = new Map<string, { name: string; username: string; km: number; count: number }>();

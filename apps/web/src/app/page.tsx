@@ -3,8 +3,6 @@ import type { Metadata } from 'next';
 import styles from './page.module.css';
 import { Footer } from '@/components/Footer';
 import { EventCard, type EventCardData } from '@/components/EventCard';
-import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/current-user';
 
 export const metadata: Metadata = {
   title: 'RS Sports — La comunidad outdoor para runners, ciclistas y trekkers',
@@ -49,45 +47,10 @@ interface HomeData {
 
 async function getHomeData(): Promise<HomeData | null> {
   try {
-    const now = new Date();
-    const [activityCount, userCount, eventCount, groupCount, upcomingEvents, currentUser] =
-      await Promise.all([
-        prisma.activity.count({ where: { status: 'PUBLISHED' } }),
-        prisma.user.count({ where: { isActive: true } }),
-        prisma.event.count({ where: { status: 'UPCOMING', date: { gte: now } } }),
-        prisma.group.count(),
-        prisma.event.findMany({
-          where: { status: 'UPCOMING', date: { gte: now } },
-          include: {
-            sport: { select: { id: true, name: true, type: true } },
-            _count: { select: { participants: true } },
-          },
-          orderBy: { date: 'asc' },
-          take: 3,
-        }),
-        getCurrentUser(),
-      ]);
-
-    const myParticipations = await prisma.eventParticipant.findMany({
-      where: { userId: currentUser.id, eventId: { in: upcomingEvents.map((e) => e.id) } },
-      select: { eventId: true },
-    });
-    const participatingSet = new Set(myParticipations.map((p) => p.eventId));
-
-    return {
-      metrics: { activities: activityCount, athletes: userCount, events: eventCount, groups: groupCount },
-      upcomingEvents: upcomingEvents.map((e) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        location: e.location,
-        date: e.date.toISOString(),
-        maxParticipants: e.maxParticipants,
-        participants: e._count.participants,
-        isParticipating: participatingSet.has(e.id),
-        sport: e.sport,
-      })),
-    };
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+    const res = await fetch(`${apiBase}/api/home`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json() as Promise<HomeData>;
   } catch {
     return null;
   }
