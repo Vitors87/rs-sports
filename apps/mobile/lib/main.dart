@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'screens/feed_screen.dart';
+import 'screens/events_screen.dart';
+import 'screens/groups_screen.dart';
+import 'screens/rankings_screen.dart';
+import 'screens/profile_screen.dart';
+import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es', null);
   runApp(const RsSportsApp());
 }
 
@@ -12,79 +21,47 @@ class RsSportsApp extends StatelessWidget {
     return MaterialApp(
       title: 'rs-sports',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2a9d8f)),
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
+      theme: AppTheme.theme,
+      home: const MainShell(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
 
-  static const _disciplines = [
-    {
-      'name': 'Running',
-      'description': 'Registra tus carreras y conecta con la comunidad',
-      'color': 0xFFe63946,
-    },
-    {
-      'name': 'Ciclismo',
-      'description': 'Comparte rutas y aventuras en bicicleta',
-      'color': 0xFF2a9d8f,
-    },
-    {
-      'name': 'Trekking',
-      'description': 'Explora senderos y montanas con otros excursionistas',
-      'color': 0xFF457b9d,
-    },
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _currentIndex = 0;
+
+  static const _screens = [
+    FeedScreen(),
+    EventsScreen(),
+    GroupsScreen(),
+    RankingsScreen(),
+    ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('rs-sports', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tu red social deportiva outdoor',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ..._disciplines.map(
-              (d) => Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Color(d['color'] as int), width: 2),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  title: Text(
-                    d['name'] as String,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(d['color'] as int),
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(d['description'] as String),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (i) => setState(() => _currentIndex = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Feed'),
+          BottomNavigationBarItem(icon: Icon(Icons.event_outlined), activeIcon: Icon(Icons.event), label: 'Eventos'),
+          BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'Comunidades'),
+          BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), activeIcon: Icon(Icons.leaderboard), label: 'Rankings'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
+        ],
       ),
     );
   }
