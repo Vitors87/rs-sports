@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import '../widgets/sport_badge.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/empty_state.dart';
+import 'groups_screen.dart';
+import 'rankings_screen.dart';
 
 const _kDemoUsername = 'demo_runner';
 
@@ -117,7 +119,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const EmptyState(emoji: '🏃', title: 'Sin actividades aún')
           else
             ...result.activities.map((a) => _ActivityRow(activity: a)),
+          const SizedBox(height: 24),
+          const Text('Explorar',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+          const SizedBox(height: 10),
+          const _ExploreSection(),
+          const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+}
+
+class _ExploreSection extends StatelessWidget {
+  const _ExploreSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _ExploreTile(
+          icon: Icons.group_outlined,
+          title: 'Comunidades',
+          subtitle: 'Grupos de Running, Ciclismo y Trekking',
+          color: AppTheme.cyclingColor,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GroupsScreen()),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _ExploreTile(
+          icon: Icons.leaderboard_outlined,
+          title: 'Rankings',
+          subtitle: 'Clasificación por disciplina y kilómetros',
+          color: AppTheme.runningColor,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RankingsScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExploreTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ExploreTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.divider),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: AppTheme.textPrimary)),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+          ],
+        ),
       ),
     );
   }

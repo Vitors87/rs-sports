@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'screens/feed_screen.dart';
+import 'screens/record_activity_screen.dart';
+import 'screens/routes_screen.dart';
 import 'screens/events_screen.dart';
-import 'screens/groups_screen.dart';
-import 'screens/rankings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -39,9 +39,9 @@ class _MainShellState extends State<MainShell> {
 
   static const _screens = [
     FeedScreen(),
+    RecordActivityScreen(),
+    RoutesScreen(),
     EventsScreen(),
-    GroupsScreen(),
-    RankingsScreen(),
     ProfileScreen(),
   ];
 
@@ -56,11 +56,31 @@ class _MainShellState extends State<MainShell> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Feed'),
-          BottomNavigationBarItem(icon: Icon(Icons.event_outlined), activeIcon: Icon(Icons.event), label: 'Eventos'),
-          BottomNavigationBarItem(icon: Icon(Icons.group_outlined), activeIcon: Icon(Icons.group), label: 'Comunidades'),
-          BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), activeIcon: Icon(Icons.leaderboard), label: 'Rankings'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Feed',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.radio_button_unchecked),
+            activeIcon: Icon(Icons.radio_button_checked),
+            label: 'Registrar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Rutas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_outlined),
+            activeIcon: Icon(Icons.event),
+            label: 'Eventos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
         ],
       ),
     );
