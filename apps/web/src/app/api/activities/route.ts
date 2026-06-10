@@ -5,6 +5,8 @@ import { createActivitySchema } from '@rs-sports/validation';
 
 export async function GET() {
   try {
+    const currentUser = await getCurrentUser();
+
     const activities = await prisma.activity.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { createdAt: 'desc' },
@@ -12,7 +14,12 @@ export async function GET() {
       include: {
         user: { select: { name: true, username: true, avatarUrl: true } },
         sport: { select: { id: true, name: true, type: true } },
-        posts: { select: { _count: { select: { comments: true } } } },
+        posts: {
+          select: {
+            _count: { select: { comments: true, likes: true } },
+            likes: { where: { userId: currentUser.id }, select: { id: true } },
+          },
+        },
       },
     });
 
@@ -20,6 +27,8 @@ export async function GET() {
       ...a,
       date: a.date.toISOString(),
       commentCount: posts.reduce((sum, p) => sum + p._count.comments, 0),
+      likeCount: posts.reduce((sum, p) => sum + p._count.likes, 0),
+      isLiked: posts.some((p) => p.likes.length > 0),
     }));
 
     return NextResponse.json({ activities: payload });
@@ -58,7 +67,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ activity: { ...activity, date: activity.date.toISOString(), commentCount: 0 } }, { status: 201 });
+    return NextResponse.json({ activity: { ...activity, date: activity.date.toISOString(), commentCount: 0, likeCount: 0, isLiked: false } }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/activities]', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });

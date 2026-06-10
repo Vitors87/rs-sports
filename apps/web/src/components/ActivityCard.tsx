@@ -27,6 +27,8 @@ export interface ActivityCardData {
   user: { name: string; username: string };
   sport: { name: string; type: string };
   commentCount?: number;
+  likeCount?: number;
+  isLiked?: boolean;
 }
 
 interface ApiComment {
@@ -76,7 +78,8 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
   const grad = SPORT_GRAD[activity.sport.type] ?? 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
   const emoji = SPORT_EMOJI[activity.sport.type] ?? '🏅';
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(activity.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(activity.likeCount ?? 0);
   const [shared, setShared] = useState(false);
 
   // Comments state
@@ -133,6 +136,21 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
       setCommentError(err instanceof Error ? err.message : 'Error al guardar el comentario');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleLike() {
+    const prev = liked;
+    const prevCount = likeCount;
+    setLiked(!prev);
+    setLikeCount(prev ? prevCount - 1 : prevCount + 1);
+    try {
+      const res = await apiFetch<{ liked: boolean; likeCount: number }>(`/api/activities/${activity.id}/like`, { method: 'POST' });
+      setLiked(res.liked);
+      setLikeCount(res.likeCount);
+    } catch {
+      setLiked(prev);
+      setLikeCount(prevCount);
     }
   }
 
@@ -234,10 +252,10 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.15rem' }}>
           <button
-            onClick={() => setLiked(!liked)}
+            onClick={handleLike}
             style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.7rem', borderRadius: 'var(--r-sm)', fontSize: '0.82rem', fontWeight: liked ? 600 : 500, color: liked ? '#e63946' : 'var(--text-3)', background: liked ? 'rgba(230,57,70,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.14s' }}
           >
-            {liked ? '❤️' : '🤍'} Me gusta
+            {liked ? '❤️' : '🤍'} {likeCount > 0 ? likeCount : 'Me gusta'}
           </button>
 
           <button
