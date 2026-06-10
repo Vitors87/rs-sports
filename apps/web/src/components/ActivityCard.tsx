@@ -69,23 +69,31 @@ function Avatar({ name, size = 38 }: { name: string; size?: number }) {
 }
 
 export function ActivityCard({ activity }: { activity: ActivityCardData }) {
-  const color = SPORT_COLOR[activity.sport.type] ?? 'var(--primary)';
   const grad = SPORT_GRAD[activity.sport.type] ?? 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
   const emoji = SPORT_EMOJI[activity.sport.type] ?? '🏅';
   const [liked, setLiked] = useState(false);
   const [shared, setShared] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<string[]>([]);
 
   function handleShare() {
-    const text = `${activity.title} — ${activity.user.name} en RS Sports`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => {
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      });
-    } else {
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
+    const text = `${activity.title} — ${activity.user.name} | RS Sports`;
+    try {
+      navigator.clipboard.writeText(text);
+    } catch {
+      // clipboard not available
     }
+    setShared(true);
+    setTimeout(() => setShared(false), 2500);
+  }
+
+  function handleComment(e: React.FormEvent) {
+    e.preventDefault();
+    const t = commentText.trim();
+    if (!t) return;
+    setComments((prev) => [...prev, t]);
+    setCommentText('');
   }
 
   return (
@@ -96,7 +104,6 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
         boxShadow: 'var(--shadow-sm)',
         border: '1px solid var(--border)',
         overflow: 'hidden',
-        animation: 'rs-fade-up 0.25s ease',
       }}
     >
       {/* Sport banner */}
@@ -225,6 +232,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
             {liked ? '❤️' : '🤍'} Me gusta
           </button>
           <button
+            onClick={() => setShowComments(!showComments)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -232,14 +240,15 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               padding: '0.4rem 0.7rem',
               borderRadius: 'var(--r-sm)',
               fontSize: '0.82rem',
-              fontWeight: 500,
-              color: 'var(--text-3)',
-              background: 'transparent',
+              fontWeight: showComments ? 600 : 500,
+              color: showComments ? 'var(--primary)' : 'var(--text-3)',
+              background: showComments ? 'var(--primary-glow)' : 'transparent',
               border: 'none',
               cursor: 'pointer',
+              transition: 'all 0.14s',
             }}
           >
-            💬 Comentar
+            💬 {comments.length > 0 ? `${comments.length}` : 'Comentar'}
           </button>
           <button
             onClick={handleShare}
@@ -259,10 +268,80 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               transition: 'all 0.14s',
             }}
           >
-            {shared ? '✓ Copiado' : '↗ Compartir'}
+            {shared ? '✓ Enlace copiado' : '↗ Compartir'}
           </button>
         </div>
       </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div
+          style={{
+            borderTop: '1px solid var(--border)',
+            padding: '0.85rem 1.15rem',
+            background: 'rgba(0,0,0,0.12)',
+          }}
+        >
+          {comments.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '0.75rem' }}>
+              {comments.map((c, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <Avatar name="Demo Runner" size={26} />
+                  <div
+                    style={{
+                      background: 'var(--surface)',
+                      borderRadius: 'var(--r-sm)',
+                      padding: '0.35rem 0.65rem',
+                      fontSize: '0.82rem',
+                      color: 'var(--text-2)',
+                      lineHeight: 1.45,
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    {c}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <form onSubmit={handleComment} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <Avatar name="Demo Runner" size={28} />
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Escribe un comentario..."
+              autoFocus
+              style={{
+                flex: 1,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r-pill)',
+                padding: '0.4rem 0.9rem',
+                fontSize: '0.82rem',
+                color: 'var(--text)',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!commentText.trim()}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: 'var(--r-pill)',
+                background: commentText.trim() ? 'var(--primary)' : 'var(--border)',
+                color: commentText.trim() ? '#fff' : 'var(--text-4)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: commentText.trim() ? 'pointer' : 'default',
+                transition: 'all 0.14s',
+              }}
+            >
+              Enviar
+            </button>
+          </form>
+        </div>
+      )}
     </article>
   );
 }

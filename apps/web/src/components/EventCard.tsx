@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
 const SPORT_COLOR: Record<string, string> = {
@@ -28,6 +29,7 @@ export interface EventCardData {
 }
 
 export function EventCard({ event, compact = false }: { event: EventCardData; compact?: boolean }) {
+  const router = useRouter();
   const [isParticipating, setIsParticipating] = useState(event.isParticipating ?? false);
   const [participantCount, setParticipantCount] = useState(event.participants);
   const [loading, setLoading] = useState(false);
@@ -225,7 +227,7 @@ export function EventCard({ event, compact = false }: { event: EventCardData; co
             {loading ? '...' : isParticipating ? '✓ Participando' : 'Participaré'}
           </button>
           <button
-            onClick={() => window.open('/events', '_self')}
+            onClick={() => router.push('/events')}
             style={{
               padding: '0.6rem 1rem',
               borderRadius: 'var(--r)',
@@ -237,7 +239,7 @@ export function EventCard({ event, compact = false }: { event: EventCardData; co
               cursor: 'pointer',
             }}
           >
-            Ver evento
+            Ver eventos
           </button>
         </div>
       </div>
