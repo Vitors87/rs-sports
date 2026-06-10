@@ -117,15 +117,43 @@ async function main() {
     { sportId: running.id, title: 'Trail Patagonia 50K', description: 'Ultra trail en el corazón de la Patagonia. Para corredores de montaña experimentados. Paisajes únicos en el mundo.', location: 'Torres del Paine, Magallanes', date: new Date('2026-12-01T07:00:00'), maxParticipants: 300 },
   ];
 
+  const eventMap: Record<string, string> = {};
   let evtCount = 0;
   for (const e of EVENTS) {
-    const exists = await prisma.event.findFirst({ where: { title: e.title } });
-    if (!exists) {
-      await prisma.event.create({ data: { ...e, status: 'UPCOMING' } });
+    let record = await prisma.event.findFirst({ where: { title: e.title } });
+    if (!record) {
+      record = await prisma.event.create({ data: { ...e, status: 'UPCOMING' } });
       evtCount++;
     }
+    eventMap[e.title] = record.id;
   }
   console.log(`✓ Events: ${evtCount} created`);
+
+  // ── Event participants ────────────────────────────────────────
+  const EVENT_PARTICIPANTS: Array<{ eventTitle: string; usernames: string[] }> = [
+    { eventTitle: 'Maratón de Santiago 2026', usernames: ['victor_riquelme', 'carlos_morales', 'felipe_munoz', 'sofia_castro', 'valentina_ruiz', 'demo_runner'] },
+    { eventTitle: 'Corrida Nocturna Santiago', usernames: ['maria_gonzalez', 'demo_runner', 'victor_riquelme', 'sofia_castro'] },
+    { eventTitle: 'Desafío MTB Andes', usernames: ['pedro_soto', 'daniela_torres', 'rodrigo_bravo'] },
+    { eventTitle: 'Trekking Cerro Provincia', usernames: ['camila_herrera', 'maria_gonzalez', 'valentina_ruiz'] },
+    { eventTitle: 'Trail Patagonia 50K', usernames: ['carlos_morales', 'valentina_ruiz', 'demo_runner'] },
+  ];
+
+  let partCount = 0;
+  for (const { eventTitle, usernames } of EVENT_PARTICIPANTS) {
+    const eventId = eventMap[eventTitle];
+    if (!eventId) continue;
+    for (const username of usernames) {
+      const user = byUsername[username];
+      if (!user) continue;
+      await prisma.eventParticipant.upsert({
+        where: { userId_eventId: { userId: user.id, eventId } },
+        update: {},
+        create: { userId: user.id, eventId },
+      });
+      partCount++;
+    }
+  }
+  console.log(`✓ Event participants: ${partCount} upserted`);
 
   // ── Groups ────────────────────────────────────────────────────
   const GROUPS = [
@@ -136,15 +164,43 @@ async function main() {
     { sportId: running.id, name: 'Corredores 10K', description: 'Para quienes entrenan la distancia de 10K. Planes de entrenamiento compartidos y motivación colectiva.' },
   ];
 
+  const groupMap: Record<string, string> = {};
   let grpCount = 0;
   for (const g of GROUPS) {
-    const exists = await prisma.group.findFirst({ where: { name: g.name } });
-    if (!exists) {
-      await prisma.group.create({ data: g });
+    let record = await prisma.group.findFirst({ where: { name: g.name } });
+    if (!record) {
+      record = await prisma.group.create({ data: g });
       grpCount++;
     }
+    groupMap[g.name] = record.id;
   }
   console.log(`✓ Groups: ${grpCount} created`);
+
+  // ── Group members ─────────────────────────────────────────────
+  const GROUP_MEMBERS: Array<{ groupName: string; usernames: string[] }> = [
+    { groupName: 'Running Santiago', usernames: ['victor_riquelme', 'carlos_morales', 'felipe_munoz', 'sofia_castro', 'maria_gonzalez', 'demo_runner'] },
+    { groupName: 'Trail Chile', usernames: ['valentina_ruiz', 'carlos_morales', 'demo_runner', 'victor_riquelme'] },
+    { groupName: 'MTB RM', usernames: ['pedro_soto', 'daniela_torres', 'rodrigo_bravo'] },
+    { groupName: 'Trekking Chile', usernames: ['camila_herrera', 'maria_gonzalez', 'valentina_ruiz', 'carlos_morales'] },
+    { groupName: 'Corredores 10K', usernames: ['victor_riquelme', 'felipe_munoz', 'sofia_castro', 'demo_runner', 'maria_gonzalez', 'valentina_ruiz', 'carlos_morales'] },
+  ];
+
+  let memCount = 0;
+  for (const { groupName, usernames } of GROUP_MEMBERS) {
+    const groupId = groupMap[groupName];
+    if (!groupId) continue;
+    for (const username of usernames) {
+      const user = byUsername[username];
+      if (!user) continue;
+      await prisma.groupMember.upsert({
+        where: { userId_groupId: { userId: user.id, groupId } },
+        update: {},
+        create: { userId: user.id, groupId },
+      });
+      memCount++;
+    }
+  }
+  console.log(`✓ Group members: ${memCount} upserted`);
 
   console.log('\n🌱 Seed completed successfully!');
 }

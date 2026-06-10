@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import styles from './page.module.css';
 import { Footer } from '@/components/Footer';
 import { EventCard, type EventCardData } from '@/components/EventCard';
+import { prisma } from '@/lib/prisma';
 
 export const metadata: Metadata = {
   title: 'RS Sports — La comunidad outdoor para runners, ciclistas y trekkers',
@@ -16,7 +17,6 @@ const SPORTS = [
     emoji: '🏃',
     grad: 'linear-gradient(135deg, #e63946, #b71c2b)',
     desc: 'Registra cada kilómetro, desde tu rodada matutina hasta maratones. Comparte tus rutas y compite con la comunidad runner.',
-    stat: '1.200 actividades este mes',
   },
   {
     type: 'CYCLING',
@@ -24,7 +24,6 @@ const SPORTS = [
     emoji: '🚴',
     grad: 'linear-gradient(135deg, #f4a261, #d97b34)',
     desc: 'Rutas de ruta y MTB, descensos técnicos y fondos épicos por la cordillera. Conecta con ciclistas de toda la RM.',
-    stat: '840 actividades este mes',
   },
   {
     type: 'TREKKING',
@@ -32,7 +31,6 @@ const SPORTS = [
     emoji: '🥾',
     grad: 'linear-gradient(135deg, #457b9d, #2d607e)',
     desc: 'Desde cumbres en los Andes hasta senderos patagónicos. Explora, registra y comparte cada aventura outdoor.',
-    stat: '410 actividades este mes',
   },
 ];
 
@@ -43,47 +41,62 @@ const STEPS = [
   { num: 4, icon: '📈', title: 'Mejora tu rendimiento', desc: 'Revisa tus estadísticas y sube en los rankings.' },
 ];
 
-const METRICS = [
-  { value: '2.450', label: 'Actividades' },
-  { value: '850', label: 'Deportistas' },
-  { value: '120', label: 'Eventos' },
-  { value: '35', label: 'Comunidades' },
-];
+interface HomeData {
+  metrics: { activities: number; athletes: number; events: number; groups: number };
+  upcomingEvents: EventCardData[];
+}
 
-const DEMO_EVENTS: EventCardData[] = [
-  {
-    id: 'e1',
-    title: 'Maratón de Santiago 2026',
-    description: 'El evento de running más importante de Chile. 42K por las principales avenidas.',
-    location: 'Parque O\'Higgins',
-    date: '2026-11-15T08:00:00',
-    participants: 7840,
-    maxParticipants: 10000,
-    sport: { name: 'Running', type: 'RUNNING' },
-  },
-  {
-    id: 'e2',
-    title: 'Desafío MTB Andes',
-    description: 'Ruta técnica de 35km por el Cajón del Maipo con 850m de desnivel positivo.',
-    location: 'Cajón del Maipo, RM',
-    date: '2026-08-10T09:00:00',
-    participants: 312,
-    maxParticipants: 500,
-    sport: { name: 'Ciclismo', type: 'CYCLING' },
-  },
-  {
-    id: 'e3',
-    title: 'Trekking Cerro Provincia',
-    description: 'Ascenso guiado con vista panorámica del Valle de Aconcagua y los Andes centrales.',
-    location: 'Cerro Provincia, RM',
-    date: '2026-07-05T07:00:00',
-    participants: 89,
-    maxParticipants: 200,
-    sport: { name: 'Trekking', type: 'TREKKING' },
-  },
-];
+async function getHomeData(): Promise<HomeData | null> {
+  try {
+    const now = new Date();
+    const [activityCount, userCount, eventCount, groupCount, upcomingEvents] = await Promise.all([
+      prisma.activity.count({ where: { status: 'PUBLISHED' } }),
+      prisma.user.count({ where: { isActive: true } }),
+      prisma.event.count({ where: { status: 'UPCOMING', date: { gte: now } } }),
+      prisma.group.count(),
+      prisma.event.findMany({
+        where: { status: 'UPCOMING', date: { gte: now } },
+        include: {
+          sport: { select: { id: true, name: true, type: true } },
+          _count: { select: { participants: true } },
+        },
+        orderBy: { date: 'asc' },
+        take: 3,
+      }),
+    ]);
 
-export default function LandingPage() {
+    return {
+      metrics: { activities: activityCount, athletes: userCount, events: eventCount, groups: groupCount },
+      upcomingEvents: upcomingEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        location: e.location,
+        date: e.date.toISOString(),
+        maxParticipants: e.maxParticipants,
+        participants: e._count.participants,
+        sport: e.sport,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default async function LandingPage() {
+  const homeData = await getHomeData();
+
+  const metrics = homeData
+    ? [
+        { value: homeData.metrics.activities.toLocaleString('es-CL'), label: 'Actividades' },
+        { value: homeData.metrics.athletes.toLocaleString('es-CL'), label: 'Deportistas' },
+        { value: homeData.metrics.events.toLocaleString('es-CL'), label: 'Eventos' },
+        { value: homeData.metrics.groups.toLocaleString('es-CL'), label: 'Comunidades' },
+      ]
+    : null;
+
+  const upcomingEvents = homeData?.upcomingEvents ?? [];
+
   return (
     <>
       {/* ── HERO ─────────────────────────────────────────────────── */}
@@ -154,11 +167,8 @@ export default function LandingPage() {
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.5rem' }}>
                     {s.name}
                   </h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', lineHeight: 1.6, marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-3)', lineHeight: 1.6 }}>
                     {s.desc}
-                  </p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)' }}>
-                    📊 {s.stat}
                   </p>
                 </div>
               </div>
@@ -168,20 +178,22 @@ export default function LandingPage() {
       </section>
 
       {/* ── METRICS ──────────────────────────────────────────────── */}
-      <div className={styles.metricsBand}>
-        <div className={styles.metricsGrid}>
-          {METRICS.map(({ value, label }) => (
-            <div key={label} className={styles.metricItem}>
-              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.05 }}>
-                {value}
+      {metrics && (
+        <div className={styles.metricsBand}>
+          <div className={styles.metricsGrid}>
+            {metrics.map(({ value, label }) => (
+              <div key={label} className={styles.metricItem}>
+                <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.05 }}>
+                  {value}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginTop: '0.4rem' }}>
+                  {label}
+                </div>
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginTop: '0.4rem' }}>
-                {label}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── HOW IT WORKS ─────────────────────────────────────────── */}
       <section style={{ background: 'var(--surface)', padding: '5rem 1.5rem' }}>
@@ -228,11 +240,18 @@ export default function LandingPage() {
               Ver todos los eventos →
             </Link>
           </div>
-          <div className={styles.eventsGrid}>
-            {DEMO_EVENTS.map((e) => (
-              <EventCard key={e.id} event={e} />
-            ))}
-          </div>
+
+          {upcomingEvents.length > 0 ? (
+            <div className={styles.eventsGrid}>
+              {upcomingEvents.map((e) => (
+                <EventCard key={e.id} event={e} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+              No hay eventos disponibles por ahora.
+            </div>
+          )}
         </div>
       </section>
 

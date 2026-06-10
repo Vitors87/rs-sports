@@ -4,14 +4,6 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { GroupCard, type GroupCardData } from '@/components/GroupCard';
 
-const FALLBACK_GROUPS: GroupCardData[] = [
-  { id: 'g1', name: 'Running Santiago', description: 'Comunidad de corredores urbanos de Santiago. Salidas los sábados y domingos por el parque.', members: 1840, recentActivity: 'Hace 2h', sport: { name: 'Running', type: 'RUNNING' } },
-  { id: 'g2', name: 'Trail Chile', description: 'Para quienes aman correr en montaña y trail. Exploramos senderos de todo Chile.', members: 920, recentActivity: 'Hace 4h', sport: { name: 'Running', type: 'RUNNING' } },
-  { id: 'g3', name: 'MTB RM', description: 'Mountain bikers de la Región Metropolitana. Rutas técnicas y cross-country los fines de semana.', members: 760, recentActivity: 'Ayer', sport: { name: 'Ciclismo', type: 'CYCLING' } },
-  { id: 'g4', name: 'Trekking Chile', description: 'Trekkistas de todo Chile. Organizamos salidas a cumbres, senderos y parques nacionales.', members: 1120, recentActivity: 'Hace 6h', sport: { name: 'Trekking', type: 'TREKKING' } },
-  { id: 'g5', name: 'Corredores 10K', description: 'Para quienes entrenan la distancia de 10K. Planes de entrenamiento compartidos y motivación colectiva.', members: 2340, recentActivity: 'Hace 1h', sport: { name: 'Running', type: 'RUNNING' } },
-];
-
 const SPORT_FILTERS = [
   { label: 'Todos', value: '' },
   { label: '🏃 Running', value: 'RUNNING' },
@@ -23,15 +15,18 @@ export function GroupsContent() {
   const [groups, setGroups] = useState<GroupCardData[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     apiFetch<{ groups: GroupCardData[] }>('/api/groups')
-      .then((d) => setGroups(d.groups.length > 0 ? d.groups : FALLBACK_GROUPS))
-      .catch(() => setGroups(FALLBACK_GROUPS))
+      .then((d) => setGroups(d.groups))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = filter ? groups.filter((g) => g.sport?.type === filter) : groups;
+
+  const totalMembers = groups.reduce((sum, g) => sum + g.members, 0);
 
   return (
     <>
@@ -52,28 +47,29 @@ export function GroupsContent() {
         </p>
       </div>
 
-      {/* Stats bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 1,
-          background: 'var(--border)',
-          borderRadius: 'var(--r)',
-          overflow: 'hidden',
-          marginBottom: '1.75rem',
-        }}
-      >
-        {[
-          { label: 'Comunidades', value: '35' },
-          { label: 'Miembros', value: '6.980' },
-          { label: 'Activas hoy', value: '18' },
-        ].map(({ label, value }) => (
-          <div key={label} style={{ flex: 1, background: 'var(--surface)', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>{value}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2, fontWeight: 600 }}>{label}</div>
-          </div>
-        ))}
-      </div>
+      {/* Stats bar — computed from real data */}
+      {!loading && !error && groups.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 1,
+            background: 'var(--border)',
+            borderRadius: 'var(--r)',
+            overflow: 'hidden',
+            marginBottom: '1.75rem',
+          }}
+        >
+          {[
+            { label: 'Comunidades', value: groups.length.toString() },
+            { label: 'Miembros totales', value: totalMembers.toLocaleString('es-CL') },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ flex: 1, background: 'var(--surface)', padding: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em' }}>{value}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2, fontWeight: 600 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {SPORT_FILTERS.map(({ label, value }) => (
@@ -105,11 +101,30 @@ export function GroupsContent() {
         </div>
       )}
 
-      {!loading && (
+      {/* Error state */}
+      {!loading && error && (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>⚠️</div>
+          <p style={{ fontWeight: 600, color: 'var(--text-2)' }}>No se pudieron cargar las comunidades.</p>
+          <p style={{ fontSize: '0.85rem', marginTop: '0.35rem' }}>Intenta recargar la página.</p>
+        </div>
+      )}
+
+      {/* Groups list */}
+      {!loading && !error && filtered.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {filtered.map((g) => (
             <GroupCard key={g.id} group={g} />
           ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          {filter
+            ? 'No hay comunidades para esta disciplina aún.'
+            : 'No hay comunidades disponibles por ahora.'}
         </div>
       )}
     </>

@@ -4,79 +4,22 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { RankingCard, type RankingEntry } from '@/components/RankingCard';
 
-interface ActivityItem {
-  user: { name: string; username: string };
-  sport: { type: string };
-  distance?: number | null;
-}
-
 const SPORT_TABS = [
   { label: '🏃 Running', value: 'RUNNING', color: '#e63946' },
   { label: '🚴 Ciclismo', value: 'CYCLING', color: '#f4a261' },
   { label: '🥾 Trekking', value: 'TREKKING', color: '#457b9d' },
 ];
 
-function buildRanking(activities: ActivityItem[], sportType: string): RankingEntry[] {
-  const map = new Map<string, { name: string; username: string; km: number; count: number }>();
-  for (const a of activities) {
-    if (a.sport.type !== sportType) continue;
-    const key = a.user.username;
-    const prev = map.get(key) ?? { name: a.user.name, username: a.user.username, km: 0, count: 0 };
-    map.set(key, { ...prev, km: prev.km + (a.distance ?? 0), count: prev.count + 1 });
-  }
-  return [...map.values()]
-    .sort((a, b) => b.km - a.km)
-    .slice(0, 10)
-    .map((u, i) => ({
-      position: i + 1,
-      name: u.name,
-      username: u.username,
-      score: Math.round(u.km * 10) / 10,
-      unit: 'km',
-      activities: u.count,
-    }));
-}
-
-const FALLBACK: Record<string, RankingEntry[]> = {
-  RUNNING: [
-    { position: 1, name: 'Carlos Morales', username: 'carlos_morales', score: 187.5, unit: 'km', activities: 12 },
-    { position: 2, name: 'Valentina Ruiz', username: 'valentina_ruiz', score: 156.2, unit: 'km', activities: 9 },
-    { position: 3, name: 'Víctor Riquelme', username: 'victor_riquelme', score: 131.3, unit: 'km', activities: 8 },
-    { position: 4, name: 'Sofía Castro', username: 'sofia_castro', score: 98.7, unit: 'km', activities: 7 },
-    { position: 5, name: 'Felipe Muñoz', username: 'felipe_munoz', score: 75.4, unit: 'km', activities: 6 },
-    { position: 6, name: 'María González', username: 'maria_gonzalez', score: 62.1, unit: 'km', activities: 5 },
-  ],
-  CYCLING: [
-    { position: 1, name: 'Pedro Soto', username: 'pedro_soto', score: 245.8, unit: 'km', activities: 8 },
-    { position: 2, name: 'Daniela Torres', username: 'daniela_torres', score: 198.4, unit: 'km', activities: 7 },
-    { position: 3, name: 'Rodrigo Bravo', username: 'rodrigo_bravo', score: 120.3, unit: 'km', activities: 4 },
-    { position: 4, name: 'Carlos Morales', username: 'carlos_morales', score: 88.0, unit: 'km', activities: 3 },
-  ],
-  TREKKING: [
-    { position: 1, name: 'Camila Herrera', username: 'camila_herrera', score: 55.2, unit: 'km', activities: 5 },
-    { position: 2, name: 'María González', username: 'maria_gonzalez', score: 42.5, unit: 'km', activities: 4 },
-    { position: 3, name: 'Valentina Ruiz', username: 'valentina_ruiz', score: 38.1, unit: 'km', activities: 3 },
-    { position: 4, name: 'Carlos Morales', username: 'carlos_morales', score: 25.0, unit: 'km', activities: 2 },
-  ],
-};
-
 export function RankingsContent() {
   const [tab, setTab] = useState('RUNNING');
-  const [rankings, setRankings] = useState<Record<string, RankingEntry[]>>(FALLBACK);
+  const [rankings, setRankings] = useState<Record<string, RankingEntry[]>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    apiFetch<{ activities: ActivityItem[] }>('/api/activities')
-      .then((d) => {
-        if (d.activities.length > 0) {
-          setRankings({
-            RUNNING: buildRanking(d.activities, 'RUNNING'),
-            CYCLING: buildRanking(d.activities, 'CYCLING'),
-            TREKKING: buildRanking(d.activities, 'TREKKING'),
-          });
-        }
-      })
-      .catch(() => {})
+    apiFetch<{ rankings: Record<string, RankingEntry[]> }>('/api/rankings')
+      .then((d) => setRankings(d.rankings))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -169,13 +112,20 @@ export function RankingsContent() {
           </div>
         )}
 
-        {!loading && current.length === 0 && (
+        {!loading && error && (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-4)' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⚠️</div>
+            No se pudieron cargar los rankings. Intenta recargar la página.
+          </div>
+        )}
+
+        {!loading && !error && current.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-4)' }}>
             No hay datos suficientes para esta disciplina.
           </div>
         )}
 
-        {!loading && current.length > 0 && (
+        {!loading && !error && current.length > 0 && (
           <div style={{ padding: '0.5rem 0.5rem' }}>
             {current.map((entry) => (
               <RankingCard key={entry.username} entry={entry} />

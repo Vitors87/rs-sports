@@ -13,7 +13,7 @@ Una plataforma tipo Facebook/Instagram diseñada para la comunidad deportiva out
 | Monorepo | Turborepo + npm workspaces |
 | Frontend web | Next.js 15, React 19, TypeScript |
 | App móvil | Flutter 3.x (Android → iOS) |
-| API | Next.js API Routes |
+| API | Next.js API Routes (integradas en `apps/web`) |
 | Base de datos | PostgreSQL (Neon) |
 | ORM | Prisma |
 | Hosting | Vercel |
@@ -24,8 +24,8 @@ Una plataforma tipo Facebook/Instagram diseñada para la comunidad deportiva out
 ```
 rs-sports/
 ├── apps/
-│   ├── web/          # Frontend Next.js  (puerto 3000)
-│   ├── api/          # API Next.js        (puerto 3001)
+│   ├── web/          # Frontend Next.js  (puerto 3000) — incluye API Routes
+│   ├── api/          # API standalone    (puerto 3001) — health check
 │   └── mobile/       # App Flutter
 ├── packages/
 │   ├── shared-types/ # Tipos TypeScript compartidos
@@ -33,7 +33,7 @@ rs-sports/
 │   └── config/       # Constantes y configuración
 ├── database/
 │   ├── prisma/       # schema.prisma
-│   └── seed/         # Datos iniciales
+│   └── seed/         # Datos iniciales (idempotente)
 └── docs/
     ├── product/      # mvp.md
     ├── architecture/ # overview.md
@@ -68,7 +68,6 @@ Editar `.env.local`:
 DATABASE_URL="postgresql://user:password@localhost:5432/rs_sports"
 NEXT_PUBLIC_APP_NAME="rs-sports"
 NEXT_PUBLIC_API_URL="http://localhost:3001"
-AUTH_SECRET="genera-con: openssl rand -hex 32"
 ```
 
 ### 3. Preparar la base de datos
@@ -77,6 +76,19 @@ AUTH_SECRET="genera-con: openssl rand -hex 32"
 npm run db:generate   # genera el cliente Prisma
 npm run db:migrate    # crea las tablas
 ```
+
+### 4. Ejecutar el seed
+
+```bash
+npx tsx database/seed/index.ts
+```
+
+El seed es **idempotente**: se puede ejecutar múltiples veces sin duplicar registros. Crea:
+- 3 deportes (Running, Ciclismo, Trekking)
+- 11 usuarios demo
+- 20 actividades
+- 5 eventos con participantes reales
+- 5 grupos con miembros reales
 
 ## Levantar Proyectos
 
@@ -92,28 +104,18 @@ npm run dev
 npm run dev -w apps/web
 ```
 
-Abrir: <http://localhost:3000>
-
-### Solo la API — puerto 3001
+### Solo la API standalone — puerto 3001
 
 ```bash
 npm run dev -w apps/api
 ```
 
-Verificar: <http://localhost:3001/api/health>
-
 ### App Móvil Flutter
 
 ```bash
 cd apps/mobile
-
-# Primera vez: inicializar la estructura completa de Flutter
 flutter create . --project-name rs_sports
-
-# Instalar dependencias
 flutter pub get
-
-# Correr en emulador o dispositivo Android
 flutter run
 ```
 
@@ -129,22 +131,118 @@ flutter run
 | `npm run db:migrate` | Ejecuta migraciones de base de datos |
 | `npm run db:studio` | Abre Prisma Studio (explorador visual) |
 
-## Validar que Todo Funciona
+---
+
+## Endpoints API
+
+Todos los endpoints son parte de `apps/web` (puerto 3000 en dev).
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/home` | Métricas globales + próximos 3 eventos |
+| GET | `/api/sports` | Lista de deportes disponibles |
+| GET | `/api/activities` | Feed de actividades (últimas 50) |
+| POST | `/api/activities` | Registrar nueva actividad |
+| GET | `/api/events` | Eventos próximos ordenados por fecha |
+| GET | `/api/groups` | Comunidades con miembros y actividad reciente |
+| GET | `/api/rankings` | Top 10 por deporte calculado desde actividades reales |
+| GET | `/api/profile/[username]` | Perfil, actividades y logros calculados |
+
+### Probar endpoints (con el servidor corriendo)
 
 ```bash
-# 1. Build de producción
-npm run build
+# Métricas globales y próximos eventos
+curl http://localhost:3000/api/home
 
-# 2. Lint
-npm run lint
+# Lista de deportes
+curl http://localhost:3000/api/sports
 
-# 3. Health check (con el server corriendo)
-curl http://localhost:3001/api/health
-# Esperado: {"status":"ok","service":"api"}
+# Feed de actividades
+curl http://localhost:3000/api/activities
 
-# 4. Análisis estático Flutter
-cd apps/mobile && flutter analyze
+# Eventos próximos
+curl http://localhost:3000/api/events
+
+# Comunidades
+curl http://localhost:3000/api/groups
+
+# Rankings por disciplina
+curl http://localhost:3000/api/rankings
+
+# Perfil de usuario con logros calculados
+curl http://localhost:3000/api/profile/demo_runner
+curl http://localhost:3000/api/profile/carlos_morales
 ```
+
+### Respuesta esperada de `/api/home`
+
+```json
+{
+  "metrics": {
+    "activities": 20,
+    "athletes": 11,
+    "events": 5,
+    "groups": 5
+  },
+  "upcomingEvents": [...]
+}
+```
+
+### Respuesta esperada de `/api/rankings`
+
+```json
+{
+  "rankings": {
+    "RUNNING": [
+      { "position": 1, "name": "Carlos Morales", "username": "carlos_morales", "score": 59.3, "unit": "km", "activities": 3 }
+    ],
+    "CYCLING": [...],
+    "TREKKING": [...]
+  }
+}
+```
+
+### Respuesta esperada de `/api/profile/[username]`
+
+```json
+{
+  "user": { "id": "...", "name": "...", "stats": { "activities": 3, "totalKm": 47.3, "followers": 0, "following": 0 } },
+  "activities": [...],
+  "achievements": [
+    { "icon": "🏅", "title": "Primer 10K", "description": "Completó una actividad de running de al menos 10 km" }
+  ]
+}
+```
+
+---
+
+## Probar el frontend
+
+Con `npm run dev` corriendo:
+
+| Pantalla | URL |
+|----------|-----|
+| Landing | http://localhost:3000/ |
+| Feed | http://localhost:3000/feed |
+| Eventos | http://localhost:3000/events |
+| Comunidades | http://localhost:3000/groups |
+| Rankings | http://localhost:3000/rankings |
+| Perfil | http://localhost:3000/profile/demo_runner |
+
+---
+
+## Validar ausencia de fallbacks
+
+Buscar en el código fuente que no queden datos hardcodeados de negocio:
+
+```bash
+# No deben aparecer resultados en apps/web/src/app o apps/web/src/components
+grep -r "FALLBACK_EVENTS\|FALLBACK_GROUPS\|DEMO_EVENTS\|DEMO_ACHIEVEMENTS\|DEMO_RANKING\|hashNum" apps/web/src/app apps/web/src/components
+```
+
+El resultado debe estar vacío.
+
+---
 
 ## Variables de Entorno
 
@@ -152,113 +250,14 @@ cd apps/mobile && flutter analyze
 |----------|-------------|-----------|
 | `DATABASE_URL` | Connection string PostgreSQL | Sí |
 | `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación | No |
-| `NEXT_PUBLIC_API_URL` | URL pública de la API | No |
-| `AUTH_SECRET` | Secret para sesiones (NextAuth) | En producción |
-| `GOOGLE_CLIENT_ID` | ID de app Google OAuth | Opcional |
-| `GOOGLE_CLIENT_SECRET` | Secret de app Google OAuth | Opcional |
-
-## Documentación
-
-- [MVP y Roadmap](docs/product/mvp.md)
-- [Arquitectura](docs/architecture/overview.md)
-- [Modelo de Base de Datos](docs/database/model.md)
-- [Deploy en Vercel](docs/deployment/vercel.md)
-
-## Primera prueba desde navegador
-
-### 1. Instalar dependencias
-
-```bash
-npm install
-```
-
-### 2. Levantar web + API simultáneamente
-
-```bash
-npm run dev
-```
-
-Turborepo arranca ambos servicios en paralelo:
-
-| Servicio | URL |
-|---------|-----|
-| Web (Next.js) | http://localhost:3000 |
-| API (Next.js) | http://localhost:3001 |
-
-O levantarlos por separado en dos terminales:
-
-```bash
-# Terminal 1 — API
-npm run dev -w apps/api
-
-# Terminal 2 — Web
-npm run dev -w apps/web
-```
-
-### 3. Qué debería verse en pantalla
-
-Al abrir **http://localhost:3000** deberías ver:
-
-- Título **RS Sports** con subtítulo
-- Tres tarjetas de disciplinas: **Running**, **Ciclismo**, **Trekking**
-- Sección "Qué podrás hacer" con 5 funcionalidades
-- Sección "Estado del MVP" con indicadores de estado
-- Sección "Conectividad API" con el resultado del health check en vivo:
-  - Punto verde + `status: ok` + `service: api` → API funcionando correctamente
-  - Punto rojo → la API no está corriendo
-
-### 4. Verificar el health check directamente
-
-```bash
-curl http://localhost:3001/api/health
-```
-
-Respuesta esperada:
-
-```json
-{"status":"ok","service":"api"}
-```
-
-### 5. Troubleshooting
-
-**Puerto 3000 ocupado:**
-
-```bash
-# Ver qué proceso usa el puerto
-netstat -ano | findstr :3000
-
-# Cambiar el puerto de web temporalmente
-npm run dev -w apps/api -- --port 3002
-```
-
-**Puerto 3001 ocupado:**
-
-```bash
-netstat -ano | findstr :3001
-```
-
-**La sección "Conectividad API" muestra error en rojo:**
-- Verificar que la API esté corriendo: `npm run dev -w apps/api`
-- Verificar que el puerto 3001 no esté bloqueado por firewall
-- CORS ya está configurado para `*` en desarrollo — si persiste, revisar `apps/api/next.config.ts`
-
-**Error `command not found: turbo`:**
-
-```bash
-npm install          # instala turbo localmente
-npm run dev          # vuelve a intentar
-```
+| `NEXT_PUBLIC_API_URL` | URL de la API standalone (puerto 3001) | No |
 
 ---
 
 ## Próximos Pasos
 
-- [ ] Autenticación con NextAuth.js (Google OAuth + email)
-- [ ] UI con Tailwind CSS + shadcn/ui
-- [ ] Conectar base de datos en Neon
-- [ ] CRUD de actividades (endpoints + UI)
-- [ ] Feed social
-- [ ] Sistema de likes y comentarios
-- [ ] Endpoints de eventos y grupos
+- [ ] Autenticación (NextAuth.js)
+- [ ] Likes y comentarios reales
+- [ ] Suscripción a grupos y eventos
 - [ ] App Flutter completa
 - [ ] CI/CD con Vercel + GitHub Actions

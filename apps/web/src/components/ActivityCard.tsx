@@ -32,12 +32,6 @@ export interface ActivityCardData {
   sport: { name: string; type: string };
 }
 
-function hashNum(str: string, mod: number): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffff;
-  return (h % mod) + 1;
-}
-
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const d = Math.floor(diff / 86400000);
@@ -78,8 +72,6 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
   const color = SPORT_COLOR[activity.sport.type] ?? 'var(--primary)';
   const grad = SPORT_GRAD[activity.sport.type] ?? 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
   const emoji = SPORT_EMOJI[activity.sport.type] ?? '🏅';
-  const likes = hashNum(activity.id, 24);
-  const comments = hashNum(activity.id + 'c', 8);
   const [liked, setLiked] = useState(false);
 
   return (
@@ -211,10 +203,12 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               fontWeight: liked ? 600 : 500,
               color: liked ? '#e63946' : 'var(--text-3)',
               background: liked ? 'rgba(230,57,70,0.08)' : 'transparent',
+              border: 'none',
+              cursor: 'pointer',
               transition: 'all 0.14s',
             }}
           >
-            {liked ? '❤️' : '🤍'} {likes + (liked ? 1 : 0)}
+            {liked ? '❤️' : '🤍'} Me gusta
           </button>
           <button
             style={{
@@ -226,9 +220,12 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               fontSize: '0.82rem',
               fontWeight: 500,
               color: 'var(--text-3)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
             }}
           >
-            💬 {comments}
+            💬 Comentar
           </button>
           <button
             style={{
@@ -240,6 +237,9 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               fontSize: '0.82rem',
               fontWeight: 500,
               color: 'var(--text-3)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
               marginLeft: 'auto',
             }}
           >

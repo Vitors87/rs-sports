@@ -10,12 +10,11 @@ const SPORT_COLOR: Record<string, string> = {
   TREKKING: '#457b9d',
 };
 
-const DEMO_ACHIEVEMENTS = [
-  { icon: '🏅', title: 'Primer 10K', desc: 'Completó su primera carrera de 10K' },
-  { icon: '⛰️', title: 'Trekker activo', desc: 'Más de 5 rutas de montaña' },
-  { icon: '🚴', title: 'Ciclista frecuente', desc: 'Más de 100km en bici' },
-  { icon: '🏃', title: 'Runner constante', desc: 'Más de 10 salidas registradas' },
-];
+interface Achievement {
+  icon: string;
+  title: string;
+  description: string;
+}
 
 interface UserData {
   id: string;
@@ -59,15 +58,18 @@ function Avatar({ name, size = 80 }: { name: string; size?: number }) {
 export function ProfileContent({ username }: { username: string }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [activities, setActivities] = useState<ActivityCardData[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-    apiFetch<{ user: UserData; activities: ActivityCardData[] }>(`/api/profile/${username}`)
+    apiFetch<{ user: UserData; activities: ActivityCardData[]; achievements: Achievement[] }>(
+      `/api/profile/${username}`,
+    )
       .then((d) => {
         setUser(d.user);
         setActivities(d.activities);
+        setAchievements(d.achievements ?? []);
       })
       .catch((e) => {
         if (e.message?.includes('404') || e.message?.includes('no encontrado')) {
@@ -103,7 +105,6 @@ export function ProfileContent({ username }: { username: string }) {
   for (const a of activities) {
     sportCounts[a.sport.type] = (sportCounts[a.sport.type] ?? 0) + 1;
   }
-  const topSport = Object.entries(sportCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   return (
     <>
@@ -247,31 +248,37 @@ export function ProfileContent({ username }: { username: string }) {
             <h3 style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.85rem' }}>
               Logros
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {DEMO_ACHIEVEMENTS.map(({ icon, title, desc }) => (
-                <div key={title} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 'var(--r-sm)',
-                      background: 'var(--primary-glow)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1rem',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {icon}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{title}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-4)' }}>{desc}</div>
+            {achievements.length === 0 ? (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-4)', textAlign: 'center', padding: '0.5rem 0' }}>
+                Aún no hay logros desbloqueados.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {achievements.map(({ icon, title, description }) => (
+                  <div key={title} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 'var(--r-sm)',
+                        background: 'var(--primary-glow)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {icon}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{title}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-4)' }}>{description}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
