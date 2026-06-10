@@ -73,6 +73,20 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
   const grad = SPORT_GRAD[activity.sport.type] ?? 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
   const emoji = SPORT_EMOJI[activity.sport.type] ?? '🏅';
   const [liked, setLiked] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  function handleShare() {
+    const text = `${activity.title} — ${activity.user.name} en RS Sports`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      });
+    } else {
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  }
 
   return (
     <article
@@ -228,6 +242,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
             💬 Comentar
           </button>
           <button
+            onClick={handleShare}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -236,14 +251,15 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
               borderRadius: 'var(--r-sm)',
               fontSize: '0.82rem',
               fontWeight: 500,
-              color: 'var(--text-3)',
-              background: 'transparent',
+              color: shared ? 'var(--primary)' : 'var(--text-3)',
+              background: shared ? 'var(--primary-glow)' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               marginLeft: 'auto',
+              transition: 'all 0.14s',
             }}
           >
-            ↗ Compartir
+            {shared ? '✓ Copiado' : '↗ Compartir'}
           </button>
         </div>
       </div>

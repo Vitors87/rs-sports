@@ -59,17 +59,28 @@ export function ProfileContent({ username }: { username: string }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [activities, setActivities] = useState<ActivityCardData[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isSelf, setIsSelf] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    apiFetch<{ user: UserData; activities: ActivityCardData[]; achievements: Achievement[] }>(
-      `/api/profile/${username}`,
-    )
+    apiFetch<{
+      user: UserData;
+      activities: ActivityCardData[];
+      achievements: Achievement[];
+      isFollowing: boolean;
+      isSelf: boolean;
+    }>(`/api/profile/${username}`)
       .then((d) => {
         setUser(d.user);
         setActivities(d.activities);
         setAchievements(d.achievements ?? []);
+        setIsFollowing(d.isFollowing ?? false);
+        setIsSelf(d.isSelf ?? false);
+        setFollowerCount(d.user.stats.followers);
       })
       .catch((e) => {
         if (e.message?.includes('404') || e.message?.includes('no encontrado')) {
@@ -78,6 +89,24 @@ export function ProfileContent({ username }: { username: string }) {
       })
       .finally(() => setLoading(false));
   }, [username]);
+
+  async function handleFollow() {
+    if (followLoading || isSelf) return;
+    setFollowLoading(true);
+    const was = isFollowing;
+    setIsFollowing(!was);
+    setFollowerCount((c) => c + (was ? -1 : 1));
+    try {
+      const res = await apiFetch<{ following: boolean }>(`/api/users/${username}/follow`, {
+        method: 'POST',
+      });
+      setIsFollowing(res.following);
+    } catch {
+      setIsFollowing(was);
+      setFollowerCount((c) => c + (was ? 1 : -1));
+    }
+    setFollowLoading(false);
+  }
 
   if (loading) {
     return (
@@ -148,22 +177,28 @@ export function ProfileContent({ username }: { username: string }) {
               </h1>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-4)' }}>@{user.username}</p>
             </div>
-            <button
-              style={{
-                padding: '0.5rem 1.25rem',
-                borderRadius: 'var(--r-pill)',
-                background: 'var(--primary)',
-                color: '#fff',
-                fontSize: '0.875rem',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                flexShrink: 0,
-                alignSelf: 'center',
-              }}
-            >
-              Seguir
-            </button>
+            {!isSelf && (
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 'var(--r-pill)',
+                  background: isFollowing ? 'transparent' : 'var(--primary)',
+                  color: isFollowing ? 'var(--primary)' : '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  border: '2px solid var(--primary)',
+                  cursor: followLoading ? 'wait' : 'pointer',
+                  flexShrink: 0,
+                  alignSelf: 'center',
+                  transition: 'all 0.15s',
+                  opacity: followLoading ? 0.7 : 1,
+                }}
+              >
+                {followLoading ? '...' : isFollowing ? '✓ Siguiendo' : 'Seguir'}
+              </button>
+            )}
           </div>
 
           {user.bio && (
@@ -177,7 +212,7 @@ export function ProfileContent({ username }: { username: string }) {
             {[
               { label: 'Actividades', value: user.stats.activities },
               { label: 'Km totales', value: `${user.stats.totalKm} km` },
-              { label: 'Seguidores', value: user.stats.followers },
+              { label: 'Seguidores', value: followerCount },
               { label: 'Siguiendo', value: user.stats.following },
             ].map(({ label, value }) => (
               <div key={label}>

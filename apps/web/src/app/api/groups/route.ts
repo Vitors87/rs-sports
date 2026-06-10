@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/current-user';
 
 function timeAgo(date: Date): string {
   const diff = Date.now() - date.getTime();
@@ -16,13 +17,22 @@ function timeAgo(date: Date): string {
 
 export async function GET() {
   try {
-    const groups = await prisma.group.findMany({
-      include: {
-        sport: { select: { id: true, name: true, type: true } },
-        _count: { select: { members: true } },
-      },
-      orderBy: { createdAt: 'asc' },
+    const [groups, currentUser] = await Promise.all([
+      prisma.group.findMany({
+        include: {
+          sport: { select: { id: true, name: true, type: true } },
+          _count: { select: { members: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      getCurrentUser(),
+    ]);
+
+    const myMemberships = await prisma.groupMember.findMany({
+      where: { userId: currentUser.id, groupId: { in: groups.map((g) => g.id) } },
+      select: { groupId: true },
     });
+    const memberSet = new Set(myMemberships.map((m) => m.groupId));
 
     const payload = groups.map((g) => ({
       id: g.id,
@@ -30,6 +40,7 @@ export async function GET() {
       description: g.description,
       members: g._count.members,
       recentActivity: timeAgo(g.updatedAt),
+      isMember: memberSet.has(g.id),
       sport: g.sport,
     }));
 

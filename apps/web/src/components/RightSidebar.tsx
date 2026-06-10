@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { EventCard, type EventCardData } from './EventCard';
 import { RankingCard, type RankingEntry } from './RankingCard';
+import { SidebarCommunities } from './SidebarCommunities';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/current-user';
 
-async function getSidebarData(): Promise<{
-  events: EventCardData[];
-  rankings: RankingEntry[];
-  groups: Array<{ id: string; name: string; members: number; sport: { type: string } | null }>;
-}> {
+async function getSidebarData() {
   try {
     const now = new Date();
-    const [rawEvents, activities, rawGroups] = await Promise.all([
+    const [rawEvents, activities, rawGroups, currentUser] = await Promise.all([
       prisma.event.findMany({
         where: { status: 'UPCOMING', date: { gte: now } },
         include: {
@@ -35,6 +33,7 @@ async function getSidebarData(): Promise<{
         orderBy: { createdAt: 'asc' },
         take: 3,
       }),
+      getCurrentUser(),
     ]);
 
     const events: EventCardData[] = rawEvents.map((e) => ({
@@ -66,10 +65,17 @@ async function getSidebarData(): Promise<{
         activities: u.count,
       }));
 
+    const myMemberships = await prisma.groupMember.findMany({
+      where: { userId: currentUser.id, groupId: { in: rawGroups.map((g) => g.id) } },
+      select: { groupId: true },
+    });
+    const memberSet = new Set(myMemberships.map((m) => m.groupId));
+
     const groups = rawGroups.map((g) => ({
       id: g.id,
       name: g.name,
       members: g._count.members,
+      isMember: memberSet.has(g.id),
       sport: g.sport,
     }));
 
@@ -114,9 +120,6 @@ function SidebarCard({ title, link, children }: { title: string; link?: string; 
 export async function RightSidebar() {
   const { events, rankings, groups } = await getSidebarData();
 
-  const colors: Record<string, string> = { RUNNING: '#e63946', CYCLING: '#f4a261', TREKKING: '#457b9d' };
-  const emojis: Record<string, string> = { RUNNING: '🏃', CYCLING: '🚴', TREKKING: '🥾' };
-
   return (
     <aside style={{ position: 'sticky', top: 'calc(var(--nav-h) + 1.5rem)' }}>
       <SidebarCard title="Próximos eventos" link="/events">
@@ -144,56 +147,7 @@ export async function RightSidebar() {
       </SidebarCard>
 
       <SidebarCard title="Comunidades activas" link="/groups">
-        {groups.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem' }}>
-            {groups.map(({ id, name, members, sport }) => {
-              const type = sport?.type ?? '';
-              const c = colors[type] ?? 'var(--primary)';
-              return (
-                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 'var(--r-sm)',
-                      background: `${c}14`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.9rem',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {emojis[type] ?? '🤝'}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>{name}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-4)' }}>{members.toLocaleString('es-CL')} miembros</div>
-                  </div>
-                  <button
-                    style={{
-                      padding: '0.22rem 0.65rem',
-                      borderRadius: 'var(--r-pill)',
-                      border: `1.5px solid ${c}`,
-                      background: 'transparent',
-                      color: c,
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    Unirse
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-4)', padding: '0.75rem 0', textAlign: 'center' }}>
-            Sin comunidades aún.
-          </p>
-        )}
+        <SidebarCommunities groups={groups} />
       </SidebarCard>
     </aside>
   );

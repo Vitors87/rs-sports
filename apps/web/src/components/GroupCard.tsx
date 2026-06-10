@@ -1,3 +1,8 @@
+'use client';
+
+import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
+
 const SPORT_COLOR: Record<string, string> = {
   RUNNING: '#e63946',
   CYCLING: '#f4a261',
@@ -16,14 +21,35 @@ export interface GroupCardData {
   description?: string | null;
   members: number;
   recentActivity?: string;
+  isMember?: boolean;
   sport?: { name: string; type: string } | null;
 }
 
 export function GroupCard({ group }: { group: GroupCardData }) {
+  const [isMember, setIsMember] = useState(group.isMember ?? false);
+  const [memberCount, setMemberCount] = useState(group.members);
+  const [loading, setLoading] = useState(false);
+
   const color = group.sport ? (SPORT_COLOR[group.sport.type] ?? 'var(--primary)') : 'var(--primary)';
   const emoji = group.sport ? (SPORT_EMOJI[group.sport.type] ?? '🏅') : '🤝';
 
-  const initial = group.name[0].toUpperCase();
+  async function handleJoin() {
+    if (loading) return;
+    setLoading(true);
+    const was = isMember;
+    setIsMember(!was);
+    setMemberCount((c) => c + (was ? -1 : 1));
+    try {
+      const res = await apiFetch<{ member: boolean }>(`/api/groups/${group.id}/join`, {
+        method: 'POST',
+      });
+      setIsMember(res.member);
+    } catch {
+      setIsMember(was);
+      setMemberCount((c) => c + (was ? 1 : -1));
+    }
+    setLoading(false);
+  }
 
   return (
     <article
@@ -99,7 +125,7 @@ export function GroupCard({ group }: { group: GroupCardData }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-4)' }}>
-              👥 {group.members.toLocaleString('es-CL')} miembros
+              👥 {memberCount.toLocaleString('es-CL')} miembros
             </span>
             {group.recentActivity && (
               <span style={{ fontSize: '0.78rem', color: 'var(--text-4)' }}>
@@ -108,19 +134,23 @@ export function GroupCard({ group }: { group: GroupCardData }) {
             )}
           </div>
           <button
+            onClick={handleJoin}
+            disabled={loading}
             style={{
               padding: '0.38rem 1rem',
               borderRadius: 'var(--r-pill)',
-              background: color,
-              color: '#fff',
+              background: isMember ? 'transparent' : color,
+              color: isMember ? color : '#fff',
               fontSize: '0.8rem',
               fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
+              border: `1.5px solid ${color}`,
+              cursor: loading ? 'wait' : 'pointer',
               flexShrink: 0,
+              transition: 'all 0.15s',
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            Unirse
+            {loading ? '...' : isMember ? '✓ Miembro' : 'Unirse'}
           </button>
         </div>
       </div>

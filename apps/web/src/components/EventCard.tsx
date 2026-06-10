@@ -1,3 +1,8 @@
+'use client';
+
+import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
+
 const SPORT_COLOR: Record<string, string> = {
   RUNNING: '#e63946',
   CYCLING: '#f4a261',
@@ -18,10 +23,15 @@ export interface EventCardData {
   date: string;
   maxParticipants?: number | null;
   participants: number;
+  isParticipating?: boolean;
   sport: { name: string; type: string };
 }
 
 export function EventCard({ event, compact = false }: { event: EventCardData; compact?: boolean }) {
+  const [isParticipating, setIsParticipating] = useState(event.isParticipating ?? false);
+  const [participantCount, setParticipantCount] = useState(event.participants);
+  const [loading, setLoading] = useState(false);
+
   const color = SPORT_COLOR[event.sport.type] ?? 'var(--primary)';
   const emoji = SPORT_EMOJI[event.sport.type] ?? '🏅';
   const dateObj = new Date(event.date);
@@ -29,8 +39,26 @@ export function EventCard({ event, compact = false }: { event: EventCardData; co
   const month = dateObj.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
   const year = dateObj.getFullYear();
   const pct = event.maxParticipants
-    ? Math.min(100, Math.round((event.participants / event.maxParticipants) * 100))
+    ? Math.min(100, Math.round((participantCount / event.maxParticipants) * 100))
     : null;
+
+  async function handleParticipate() {
+    if (loading) return;
+    setLoading(true);
+    const was = isParticipating;
+    setIsParticipating(!was);
+    setParticipantCount((c) => c + (was ? -1 : 1));
+    try {
+      const res = await apiFetch<{ participating: boolean }>(`/api/events/${event.id}/participate`, {
+        method: 'POST',
+      });
+      setIsParticipating(res.participating);
+    } catch {
+      setIsParticipating(was);
+      setParticipantCount((c) => c + (was ? 1 : -1));
+    }
+    setLoading(false);
+  }
 
   if (compact) {
     return (
@@ -145,7 +173,7 @@ export function EventCard({ event, compact = false }: { event: EventCardData; co
             </span>
           )}
           <span style={{ fontSize: '0.82rem', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            👥 {event.participants.toLocaleString('es-CL')} participantes
+            👥 {participantCount.toLocaleString('es-CL')} participantes
           </span>
           {event.maxParticipants && (
             <span style={{ fontSize: '0.82rem', color: 'var(--text-3)' }}>
@@ -178,21 +206,26 @@ export function EventCard({ event, compact = false }: { event: EventCardData; co
 
         <div style={{ display: 'flex', gap: '0.6rem' }}>
           <button
+            onClick={handleParticipate}
+            disabled={loading}
             style={{
               flex: 1,
               padding: '0.6rem',
               borderRadius: 'var(--r)',
-              background: color,
-              color: '#fff',
+              background: isParticipating ? 'transparent' : color,
+              color: isParticipating ? color : '#fff',
               fontSize: '0.875rem',
               fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
+              border: `2px solid ${color}`,
+              cursor: loading ? 'wait' : 'pointer',
+              transition: 'all 0.15s',
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            Participaré
+            {loading ? '...' : isParticipating ? '✓ Participando' : 'Participaré'}
           </button>
           <button
+            onClick={() => window.open('/events', '_self')}
             style={{
               padding: '0.6rem 1rem',
               borderRadius: 'var(--r)',

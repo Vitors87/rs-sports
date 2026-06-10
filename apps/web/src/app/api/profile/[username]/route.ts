@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/current-user';
 
 interface Achievement {
   icon: string;
@@ -46,25 +47,31 @@ export async function GET(
   try {
     const { username } = await params;
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-      include: {
-        activities: {
-          include: {
-            sport: { select: { id: true, name: true, type: true } },
+    const [user, currentUser] = await Promise.all([
+      prisma.user.findUnique({
+        where: { username },
+        include: {
+          activities: {
+            include: { sport: { select: { id: true, name: true, type: true } } },
+            orderBy: { date: 'desc' },
+            take: 20,
           },
-          orderBy: { date: 'desc' },
-          take: 20,
+          _count: { select: { activities: true, followers: true, following: true } },
         },
-        _count: {
-          select: { activities: true, followers: true, following: true },
-        },
-      },
-    });
+      }),
+      getCurrentUser(),
+    ]);
 
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
+
+    const isFollowing =
+      user.id !== currentUser.id
+        ? !!(await prisma.userFollow.findUnique({
+            where: { followerId_followingId: { followerId: currentUser.id, followingId: user.id } },
+          }))
+        : false;
 
     const totalKm = user.activities.reduce((sum, a) => sum + (a.distance ?? 0), 0);
     const { activities, _count, ...userBase } = user;
@@ -91,6 +98,8 @@ export async function GET(
         sport: a.sport,
       })),
       achievements: computeAchievements(activities),
+      isFollowing,
+      isSelf: user.id === currentUser.id,
     });
   } catch (error) {
     console.error('[GET /api/profile/[username]]', error);
