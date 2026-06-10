@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/events',               icon: '🗓', label: 'Eventos' },
   { href: '/groups',               icon: '👥', label: 'Comunidades' },
   { href: '/rankings',             icon: '🏆', label: 'Rankings' },
+  { href: '/routes',               icon: '🗺️', label: 'Rutas' },
 ];
 
 export function LeftSidebar() {

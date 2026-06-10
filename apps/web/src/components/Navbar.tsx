@@ -11,6 +11,7 @@ const NAV = [
   { href: '/events', label: 'Eventos' },
   { href: '/groups', label: 'Comunidades' },
   { href: '/rankings', label: 'Rankings' },
+  { href: '/routes', label: 'Rutas' },
 ];
 
 export function Navbar() {

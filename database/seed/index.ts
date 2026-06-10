@@ -202,6 +202,81 @@ async function main() {
   }
   console.log(`✓ Group members: ${memCount} upserted`);
 
+  // ── Routes ────────────────────────────────────────────────────
+  const ROUTES = [
+    // Running
+    {
+      sport: running, title: 'Parque Bicentenario 5K', city: 'Vitacura', region: 'Región Metropolitana',
+      description: 'Circuito plano y señalizado alrededor del Parque Bicentenario. Ideal para principiantes y entrenamientos diarios. Superficie de asfalto y senderos de tierra compacta.',
+      distanceKm: 5.0, elevationGain: 20, durationMin: 35, difficulty: 'Fácil',
+    },
+    {
+      sport: running, title: 'Cerro San Cristóbal Trail', city: 'Providencia', region: 'Región Metropolitana',
+      description: 'Sendero de trail running por el Cerro San Cristóbal. Sube hasta la cumbre con vistas panorámicas de Santiago. Mezcla de senderos de tierra y escaleras de piedra.',
+      distanceKm: 8.0, elevationGain: 300, durationMin: 65, difficulty: 'Media',
+    },
+    {
+      sport: running, title: 'Parque Araucano Loop', city: 'Las Condes', region: 'Región Metropolitana',
+      description: 'Bucle completo por el Parque Araucano en Las Condes. Zona arbolada, tranquila y segura. Perfecta para rodadas matutinas o fondo suave de recuperación.',
+      distanceKm: 6.0, elevationGain: 40, durationMin: 42, difficulty: 'Fácil',
+    },
+    // Cycling
+    {
+      sport: cycling, title: 'Costanera Norte Ciclovía', city: 'Santiago', region: 'Región Metropolitana',
+      description: 'Recorrido por la ciclovía de Costanera Norte junto al río Mapocho. Ruta urbana plana y bien señalizada, ideal para entrenamiento diario o paseo familiar.',
+      distanceKm: 20.0, elevationGain: 30, durationMin: 60, difficulty: 'Fácil',
+    },
+    {
+      sport: cycling, title: 'Ruta Farellones', city: 'Lo Barnechea', region: 'Región Metropolitana',
+      description: 'Ascenso clásico desde Lo Barnechea hasta Farellones. 1200m de desnivel positivo en 35km. Una de las rutas de ciclismo más desafiantes e icónicas de Santiago.',
+      distanceKm: 35.0, elevationGain: 1200, durationMin: 150, difficulty: 'Difícil',
+    },
+    {
+      sport: cycling, title: 'Circuito Las Vizcachas', city: 'Puente Alto', region: 'Región Metropolitana',
+      description: 'Circuito MTB y ruta en Las Vizcachas con subidas y bajadas técnicas. Mezcla de sendero natural y caminos de tierra. Vista al Cajón del Maipo y la cordillera.',
+      distanceKm: 25.0, elevationGain: 400, durationMin: 90, difficulty: 'Media',
+    },
+    // Trekking
+    {
+      sport: trekking, title: 'Cerro Provincia', city: 'Lampa', region: 'Región Metropolitana',
+      description: 'Uno de los cerros más imponentes de la precordillera de Santiago. Ascenso por ladera norte con vista de 360° sobre el valle del Aconcagua y los Andes centrales.',
+      distanceKm: 18.0, elevationGain: 1500, durationMin: 360, difficulty: 'Difícil',
+    },
+    {
+      sport: trekking, title: 'Cerro Manquehue', city: 'Las Condes', region: 'Región Metropolitana',
+      description: 'El cerro-isla más icónico de Santiago. Acceso desde Las Condes, sendero bien marcado hasta la cumbre. Vistas espectaculares de la ciudad y la cordillera nevada.',
+      distanceKm: 10.0, elevationGain: 800, durationMin: 240, difficulty: 'Media',
+    },
+    {
+      sport: trekking, title: 'Laguna Los Patos', city: 'Los Andes', region: 'Región de Valparaíso',
+      description: 'Ruta a la Laguna Los Patos en Los Andes. Agua turquesa rodeada de montaña andina. Sendero de tierra con tramos rocosos. Tranquilidad total en plena cordillera.',
+      distanceKm: 12.0, elevationGain: 600, durationMin: 240, difficulty: 'Media',
+    },
+  ];
+
+  let rtCount = 0;
+  for (const r of ROUTES) {
+    const exists = await prisma.route.findFirst({ where: { title: r.title } });
+    if (!exists) {
+      await prisma.route.create({
+        data: {
+          title: r.title,
+          description: r.description,
+          sportId: r.sport.id,
+          distanceKm: r.distanceKm,
+          elevationGain: r.elevationGain,
+          durationMin: r.durationMin,
+          city: r.city,
+          region: r.region,
+          country: 'Chile',
+          difficulty: r.difficulty,
+        },
+      });
+      rtCount++;
+    }
+  }
+  console.log(`✓ Routes: ${rtCount} created (existing skipped)`);
+
   console.log('\n🌱 Seed completed successfully!');
 }
 

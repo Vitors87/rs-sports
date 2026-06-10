@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api';
 import { EventCard, type EventCardData } from './EventCard';
 import { RankingCard, type RankingEntry } from './RankingCard';
 import { SidebarCommunities } from './SidebarCommunities';
+import { RouteCardCompact, type RouteCardData } from './RouteCard';
 
 interface SidebarGroup {
   id: string;
@@ -19,6 +20,7 @@ interface SidebarData {
   upcomingEvents: EventCardData[];
   topRunners: RankingEntry[];
   activeGroups: SidebarGroup[];
+  featuredRoutes: RouteCardData[];
 }
 
 function SkeletonBlock({ height = 72 }: { height?: number }) {
@@ -163,6 +165,27 @@ export function RightSidebar() {
           </>
         ) : (
           <SidebarCommunities groups={data?.activeGroups ?? []} />
+        )}
+      </SidebarCard>
+
+      {/* Featured routes */}
+      <SidebarCard title="Rutas destacadas" link="/routes" loading={loading}>
+        {loading ? (
+          <>
+            <SkeletonBlock height={52} />
+            <SkeletonBlock height={52} />
+            <SkeletonBlock height={52} />
+          </>
+        ) : (data?.featuredRoutes ?? []).length > 0 ? (
+          <div style={{ paddingTop: '0.15rem' }}>
+            {data!.featuredRoutes.map((r) => (
+              <RouteCardCompact key={r.id} route={r} />
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-4)', padding: '0.75rem 0', textAlign: 'center' }}>
+            No hay rutas aún.
+          </p>
         )}
       </SidebarCard>
     </aside>

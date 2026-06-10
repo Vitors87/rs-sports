@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/current-user';
 
 export async function GET() {
   try {
-    const [rawEvents, activities, rawGroups, currentUser] = await Promise.all([
+    const [rawEvents, activities, rawGroups, currentUser, featuredRoutes] = await Promise.all([
       prisma.event.findMany({
         where: { status: 'UPCOMING' },
         include: {
@@ -30,6 +30,11 @@ export async function GET() {
         take: 5,
       }),
       getCurrentUser(),
+      prisma.route.findMany({
+        include: { sport: { select: { name: true, type: true } } },
+        orderBy: { createdAt: 'asc' },
+        take: 3,
+      }),
     ]);
 
     // ── Upcoming events ──────────────────────────────────────────
@@ -88,7 +93,20 @@ export async function GET() {
         sport: g.sport,
       }));
 
-    return NextResponse.json({ upcomingEvents, topRunners, activeGroups });
+    const routes = featuredRoutes.map((r) => ({
+      id: r.id,
+      title: r.title,
+      distanceKm: r.distanceKm,
+      elevationGain: r.elevationGain,
+      durationMin: r.durationMin,
+      difficulty: r.difficulty,
+      region: r.region,
+      city: r.city,
+      imageUrl: r.imageUrl,
+      sport: r.sport,
+    }));
+
+    return NextResponse.json({ upcomingEvents, topRunners, activeGroups, featuredRoutes: routes });
   } catch (error) {
     console.error('[GET /api/feed/sidebar]', error);
     return NextResponse.json({ error: 'Error al obtener datos del sidebar' }, { status: 500 });
