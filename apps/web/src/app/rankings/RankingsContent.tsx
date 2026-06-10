@@ -102,7 +102,7 @@ export function RankingsContent() {
             Top 10 — {tabInfo.label}
           </h2>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-4)', fontWeight: 500 }}>
-            Junio 2026
+            {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
           </span>
         </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 const SPORT_COLOR: Record<string, string> = {
@@ -82,7 +83,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
     try {
       navigator.clipboard.writeText(text);
     } catch {
-      // clipboard not available
+      // clipboard not available in HTTP context, still show feedback
     }
     setShared(true);
     setTimeout(() => setShared(false), 2500);
@@ -130,13 +131,24 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
       <div style={{ padding: '1rem 1.15rem 0.8rem' }}>
         {/* User header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.7rem' }}>
-          <Avatar name={activity.user.name} />
+          <Link href={`/profile/${activity.user.username}`} style={{ flexShrink: 0 }}>
+            <Avatar name={activity.user.name} />
+          </Link>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.2 }}>
+            <Link
+              href={`/profile/${activity.user.username}`}
+              style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.2, display: 'block' }}
+            >
               {activity.user.name}
-            </div>
+            </Link>
             <div style={{ fontSize: '0.73rem', color: 'var(--text-4)' }}>
-              @{activity.user.username} · {timeAgo(activity.date)}
+              <Link
+                href={`/profile/${activity.user.username}`}
+                style={{ color: 'var(--text-4)' }}
+              >
+                @{activity.user.username}
+              </Link>
+              {' · '}{timeAgo(activity.date)}
             </div>
           </div>
         </div>
@@ -279,7 +291,7 @@ export function ActivityCard({ activity }: { activity: ActivityCardData }) {
           style={{
             borderTop: '1px solid var(--border)',
             padding: '0.85rem 1.15rem',
-            background: 'rgba(0,0,0,0.12)',
+            background: 'rgba(0,0,0,0.03)',
           }}
         >
           {comments.length > 0 && (

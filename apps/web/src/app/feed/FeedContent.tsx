@@ -15,14 +15,16 @@ export function FeedContent() {
   const [activities, setActivities] = useState<ActivityCardData[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   const loadActivities = useCallback(async () => {
     try {
       const data = await apiFetch<{ activities: ActivityCardData[] }>('/api/activities');
       setActivities(data.activities);
+      setError(false);
     } catch {
-      // silently show empty state
+      setError(true);
     }
   }, []);
 
@@ -112,8 +114,22 @@ export function FeedContent() {
         </div>
       )}
 
+      {/* Error state */}
+      {!loading && error && (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>⚠️</div>
+          <p style={{ fontWeight: 600, color: 'var(--text-2)' }}>No se pudo cargar el feed.</p>
+          <button
+            onClick={() => { setError(false); setLoading(true); loadActivities().finally(() => setLoading(false)); }}
+            style={{ marginTop: '1rem', padding: '0.5rem 1.25rem', borderRadius: 'var(--r-pill)', background: 'var(--primary)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!loading && activities.length === 0 && (
+      {!loading && !error && activities.length === 0 && (
         <div
           style={{
             background: 'var(--surface)',
@@ -150,7 +166,7 @@ export function FeedContent() {
       )}
 
       {/* Feed */}
-      {!loading && activities.length > 0 && (
+      {!loading && !error && activities.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
           {activities.map((a) => (
             <ActivityCard key={a.id} activity={a} />

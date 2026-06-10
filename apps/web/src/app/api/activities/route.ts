@@ -1,20 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/current-user';
 import { createActivitySchema } from '@rs-sports/validation';
-
-const DEMO_USER = {
-  email: 'demo@rssports.local',
-  username: 'demo_runner',
-  name: 'Demo Runner',
-};
-
-async function getOrCreateDemoUser() {
-  return prisma.user.upsert({
-    where: { email: DEMO_USER.email },
-    update: {},
-    create: DEMO_USER,
-  });
-}
 
 const ACTIVITY_SELECT = {
   include: {
@@ -26,6 +13,7 @@ const ACTIVITY_SELECT = {
 export async function GET() {
   try {
     const activities = await prisma.activity.findMany({
+      where: { status: 'PUBLISHED' },
       orderBy: { createdAt: 'desc' },
       take: 50,
       ...ACTIVITY_SELECT,
@@ -57,7 +45,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Deporte no encontrado' }, { status: 404 });
     }
 
-    const user = await getOrCreateDemoUser();
+    const user = await getCurrentUser();
 
     const activity = await prisma.activity.create({
       data: { userId: user.id, sportId, title, description, distance, duration, elevation, date },

@@ -18,11 +18,11 @@ interface Props {
 const INPUT: React.CSSProperties = {
   width: '100%',
   padding: '0.55rem 0.75rem',
-  borderRadius: 8,
-  border: '1.5px solid #e2e8f0',
+  borderRadius: 'var(--r-sm)' as never,
+  border: '1.5px solid var(--border)' as never,
   fontSize: '0.88rem',
-  color: '#1e293b',
-  background: '#f8fafc',
+  color: 'var(--text)' as never,
+  background: 'var(--bg)' as never,
   outline: 'none',
 };
 
@@ -30,7 +30,7 @@ const LABEL: React.CSSProperties = {
   display: 'block',
   fontSize: '0.72rem',
   fontWeight: 700,
-  color: '#475569',
+  color: 'var(--text-3)' as never,
   marginBottom: '0.3rem',
   textTransform: 'uppercase',
   letterSpacing: '0.07em',
@@ -82,20 +82,21 @@ export function ActivityForm({ sports, initialSportId, onSuccess }: Props) {
     <form
       onSubmit={handleSubmit}
       style={{
-        background: 'white',
-        borderRadius: 12,
+        background: 'var(--surface)',
+        borderRadius: 'var(--r)',
         padding: '1.35rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       <h2
         style={{
           fontSize: '0.95rem',
           fontWeight: 700,
-          color: '#1e293b',
+          color: 'var(--text)',
           marginBottom: '1.1rem',
           paddingBottom: '0.75rem',
-          borderBottom: '1px solid #f1f5f9',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         Nueva actividad
@@ -195,9 +196,9 @@ export function ActivityForm({ sports, initialSportId, onSuccess }: Props) {
           <div
             style={{
               padding: '0.55rem 0.8rem',
-              borderRadius: 8,
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
+              borderRadius: 'var(--r-sm)',
+              background: 'rgba(220,38,38,0.08)',
+              border: '1px solid rgba(220,38,38,0.25)',
               color: '#dc2626',
               fontSize: '0.82rem',
             }}
@@ -212,9 +213,9 @@ export function ActivityForm({ sports, initialSportId, onSuccess }: Props) {
           style={{
             width: '100%',
             padding: '0.7rem',
-            borderRadius: 8,
+            borderRadius: 'var(--r)',
             border: 'none',
-            background: submitting ? '#94a3b8' : '#2a9d8f',
+            background: submitting ? 'var(--text-4)' : 'var(--primary)',
             color: 'white',
             fontWeight: 700,
             fontSize: '0.88rem',
